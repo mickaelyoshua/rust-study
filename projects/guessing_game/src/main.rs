@@ -1,7 +1,16 @@
 use std::io; // import form the standard library
+use rand::Rng; // Crate 'rand' for randomization
 
 fn main() {
     println!("Guess the number!");
+
+    let secret_number = rand::thread_rng().gen_range(1..=100);
+    // 'thread_rng' returns the random number generator that is local to the current thread and
+    // seeded by the OS.
+    // the range syntax 'start..=end' is inclusive on the lower and upper bounds.
+
+    println!("The secret number is: {secret_number}");
+
     println!("Please input your guess:");
 
     let mut guess = String::new();
