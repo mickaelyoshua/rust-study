@@ -68,3 +68,69 @@ When project is ready for release, run `cargo build --release` to compile with o
 # Std library
 [Standard library documentation](https://doc.rust-lang.org/std/prelude/index.html)
 
+# Diff between Default Immutable Variables and Constants
+Constants (`const`) can be declared at any scope, it is not possible to declare a variable with `let` ate the global level.
+```rust
+const THREE_HOURS_IN_SECONDS: u32 = 60 * 60 * 3;
+
+fn main() {
+    println!("Three hours have {THREE_HOURS_IN_SECONDS} seconds")
+}
+
+```
+
+# Shadowing
+It is possible to *shadow* a varible. You declare a variable then creates a new variable with the same name *shadowing* the first one, it takes any uses of the variable name on the scope where it was redeclared.
+```rust
+fn main() {
+    let x = 5;
+    let x = x + 1; // shadowing
+
+    {
+        let x = x * 2; // shadowing again
+        println!("The value of x in inner scope is: {x}"); // 12
+    }
+
+    println!("The value of x is: {x}"); // 6
+}
+
+```
+It also can be done with different datatypes, it is reusing the name on the scope.
+
+# Data Types
+## Char
+Chars on Rust are not ASCII, they are Unicode.
+
+## Tuples
+is a grouping of a variety of types. It can not change it size.
+Creating a tuple:
+```rust
+fn main() {
+    let tup: (i32, f64, u8) = (500, 6.4, 1);
+}
+```
+
+It is possible to get the values of a tuple by *destructuring* it:
+```rust
+fn main() {
+    let tup = (500, 6.4, 1);
+    let (x, y, z) = tup;
+    println!("The value of y is: {y}"); // 6.4
+}
+```
+
+It is also possible to access tuple values by indexing:
+```rust
+fn main() {
+    let x: (i32, f64, u8) = (500, 6.4, 1);
+
+    let five_hundred = x.0;
+    let six_point_four = x.1;
+    let one = x.2;
+}
+```
+
+A tuple without values is called *unit*. This value and its corresponding type are both written `()` and represent an empty return type. Expression implicitly return the *unit* value if not returning any other value.
+
+## Arrays
+
