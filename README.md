@@ -163,3 +163,52 @@ fn main() {
     let second = a[1]; // 2
 }
 ```
+
+# Functions
+The conventional naming style for Rust is the *snake case* in with all letters are lowercase and the words are separeted with underscore.
+
+## Statements and Expressions
+Rust is a expression-based language. The definitions of statement and expression are:
+* **Statements:** Instructions that perform some action and do not return a value
+* **Expressions:** Evaluate to a result value
+```rust
+fn main() {
+    let y = 6; // Statement - do not return values
+    // In other languages is possible to do x = y = 6,
+    // but in Rust it is not possible, the statement does not return
+    // a value to be assigned to another variable.
+}
+```
+On expressions it has a value to return. Calling a function is an expression, calling a macro also is, a new scope is also a expression.
+```rust
+fn main() {
+    let y = {
+        let x = 5;
+        x+1 // Expressions do not include a semicolon at the end.
+            // If a semicolon is added, the expression turns into a statement.
+    }; // This scope is an expression.
+    // The value to y will be 6
+    // x+1 returns a value and the value
+    // will be assigned to y.
+}
+```
+
+## Returns
+Returns of functions on Rust always return the un-semicoloned final expression on the block or with the `return` word.
+```rust
+fn plus_one(x: i32) -> i32 {
+    x + 1
+}
+fn plus_one_with_return(x: i32) -> i32 {
+    return x + 1
+}
+
+fn main() {
+    let p1 = plus_one(5);
+    let p2 = plus_one_with_return(6);
+    println!("Plus one: {p1}");
+    println!("Plus one with return: {p2}");
+}
+```
+
+
