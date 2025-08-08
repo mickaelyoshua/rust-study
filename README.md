@@ -119,7 +119,7 @@ fn main() {
 }
 ```
 
-It is also possible to access tuple values by indexing:
+It is also possible to access tuple values by indexing with a '.':
 ```rust
 fn main() {
     let x: (i32, f64, u8) = (500, 6.4, 1);
@@ -133,4 +133,33 @@ fn main() {
 A tuple without values is called *unit*. This value and its corresponding type are both written `()` and represent an empty return type. Expression implicitly return the *unit* value if not returning any other value.
 
 ## Arrays
+In Rust, arrays have a fixed length. The declaration of an arrays is:
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+}
+```
 
+An arrays type annotation, definition of type and length:
+```rust
+fn main() {
+    let a: [i32; 5] = [1, 2, 3, 4, 5];
+}
+```
+
+Initialize an array with all elements equal:
+```rust
+fn main() {
+    let a = [3; 5]; // length 5 and all elements are the number 3
+}
+```
+
+Access elements of an arrays:
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    let first = a[0]; // 1
+    let second = a[1]; // 2
+}
+```
