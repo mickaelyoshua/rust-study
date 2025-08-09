@@ -294,4 +294,52 @@ fn main() {
 }
 ```
 
+# Ownership
+Some languages have garbage collectors to manage memory, looking for a no longer space used to free it as the program runs (like Python), others the memory must be explicitly allocated and freed.
+In Rust there is a third way to do it: memory is managed through a system of ownership with a set of rules that the compile checks. If any of these rules are violated, the program won't compile. None of the features of ownership will slow down the program when it is running.
+
+## Stack and Heap
+The stack and the heap are two distinct regions of memory available to a program at runtime, each with different structures and use cases. The choice between them is crucial in systems programming as it affects performance and memory management.
+
+---
+
+### The Stack
+
+The stack is a highly organized region of memory that operates on a **Last-In, First-Out (LIFO)** principle.
+
+* **Structure and Operations**: Data is added to the top of the stack in a process called **pushing**, and removed from the top in a process called **popping**. This rigid order makes memory management simple and fast.
+* **Data Type**: All data stored on the stack must have a **known, fixed size** determined at compile time. This includes integers, floating-point numbers, characters, booleans, and pointers.
+* **Management**: Memory on the stack is managed automatically. When a function is called, a block of memory called a *stack frame* is pushed onto the stack to store its local variables and parameters. When the function finishes, this frame is popped off, automatically deallocating that memory.
+* **Performance**: Pushing and popping are extremely fast operations because there's no need to search for a place to store data; it's always at the top. This also leads to excellent *locality of reference*, meaning data is stored contiguously, which allows modern CPUs to access it very quickly via their caches. A common error associated with the stack is a *stack overflow*, which occurs when it runs out of space.
+---
+
+### The Heap
+
+The heap is a less organized pool of memory used for data whose size may be unknown at compile time or might change during the program's execution.
+
+* **Structure and Operations**: When data needs to be stored on the heap, the program requests a certain amount of space from the system's *memory allocator*. The allocator finds a suitable empty block, marks it as in use, and returns a *pointer* (the memory address) to that location. This process is called *allocation*.
+* **Data Type**: The heap is used for dynamic data, such as strings that can grow, vectors, or complex user-defined data structures.
+* **Management**: Heap memory must be managed explicitly. In languages like C/C++, the programmer must manually deallocate (free) the memory once it's no longer needed. Forgetting to do so results in a *memory leak*. In other languages like Java, Python, or Rust (through its ownership system), this process is handled automatically by a garbage collector or other mechanisms.
+* **Performance**: Allocating memory on the heap is slower than pushing to the stack because the allocator must perform work to find a sufficiently large block of free memory. Accessing data on the heap is also typically slower because it requires an extra step of *dereferencing* a pointer. Data on the heap can be fragmented, leading to poor locality of reference and slower access times.
+---
+
+### Key Differences Summarized
+
+| Feature | Stack | Heap |
+| :--- | :--- | :--- |
+| **Speed** | Very fast allocation and access | Slower allocation and access |
+| **Data Size** | Fixed, known at compile time | Dynamic, can change at runtime |
+| **Management** | Automatic (LIFO) | Manual or via a garbage collector |
+| **Structure** | Highly organized, contiguous | Less organized, fragmented |
+| **Access** | Direct | Indirect (via pointers) |
+
+
+Keeping track of what parts of code are using data on the heap, minimizing the ammount of duplicated data on the heap, cleaning unused data on the heap are all problems that ownership addresses.
+
+## Ownership rules
+* Each value in Rust has an *owner*;
+* There can be only one owner at a time;
+* When the owner goes out of scope, the value will be dropped.
+
+## Variable Scope
 
