@@ -25,10 +25,10 @@ fn main() {
     // to avoid double free error, 's1' is no longer available
     
 
-    let mut st = String::from("hello");
-    st = String::from("ahoy");
-    println!("{st}, world!");
-    // the reassign will automatically free the previous memory to allocate and store a new one
+    // let mut st = String::from("hello");
+    // st = String::from("ahoy");
+    // println!("{st}, world!");
+    // // the reassign will automatically free the previous memory to allocate and store a new one
     
     let st1 = String::from("hello");
     let st2 = st1.clone();
@@ -52,8 +52,21 @@ fn main() {
 
 
     let s1 = String::from("h1");
-    let (s2, len) = calculate_length(s1); // takes ownership from s1 and gives to s2
-    println!("String: {s2} Length: {len}");
+    let len = calculate_length(&s1);
+    println!("String: {s1} Length: {len}");
+
+    let mut s = String::from("mut");
+    change(&mut s);
+    println!("String: {s}");
+
+
+    let mut s = String::from("hello");
+    let r1 = &s; // no problem
+    let r2 = &s; // no problem
+    println!("{r1} {r2}"); // end of scope for 'r1' and 'r2'
+    
+    let r3 = &mut s; // no problem
+    println!("{r3}");
 }
 
 fn takes_ownership(s: String) {
@@ -70,7 +83,10 @@ fn takes_and_gives_back(s: String) -> String {
     s
 }
 
-fn calculate_length(s: String) -> (String, usize) {
-    let length = s.len();
-    (s, length)
+fn calculate_length(s: &str) -> usize {
+    s.len()
+}
+
+fn change(s: &mut String) {
+    s.push_str(" reference");
 }

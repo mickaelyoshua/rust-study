@@ -473,4 +473,99 @@ fn calculate_length(s: String) -> (String, usize) {
 ```
 
 ## References and Borrowing
+The issue with the previous code is that we still have to return the `String` in order to use it after is passed to the function. To solve this it is possible to pass a *reference* to the variable. A *reference* is like a pointer to the variable. This way the function will access the data stored in the address buut will not change its ownership.
+```rust
+fn main() {
+    let s1 = String::from("h1");
+    let len = calculate_length(&s1);
+    println!("String: {s1} Length: {len}");
+}
+fn calculate_length(s: &str) -> usize {
+    s.len()
+}
+```
+The action of creating a reference is called *borrowing*. In this case is not possible to make changes in what is borrowed. References are immutable by default. In order to change must use a mutable reference.
+```rust
+fn main() {
+    let mut s = String::from("mut");
+    change(&mut s);
+    println!("String: {s}");
+}
+fn change(s: &mut String) {
+    s.push_str(" reference");
+}
+```
+
+Mutable reference have a big restriction: if a value has a mutable reference to it, it can not have another reference.
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    let r2 = &mut s;
+    // it will give a compile error
+
+    println!("{r1}, {r2}");
+}
+```
+This is done so there is no data race happening. No scenario where two references try to change the same value at the same time. A data race heppens when:
+* Two or more pointer access the same data at the same time.
+* At least one pointer is being used to write to the data.
+* There's no mechanism being used to synchronize access to the data.
+It is possible to allow multiple mutable references, but not at the same scope.
+```rust
+fn main() {
+    let mut s = String::from("hello");
+    {
+        let r1 = &mut s;
+    } // r1 goes out of scope and allows to create a new mutable reference
+    let r2 = &mut s;
+}
+```
+
+The same restriction is applied to mutable and non-mutable references to the same data.
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &s; // no problem
+    let r2 = &s; // no problem
+    let r3 = &mut s; // BIG PROBLEM
+
+    println!("{r1}, {r2}, and {r3}");
+}
+```
+
+### Important
+The reference's scope starts when it is declared and ends after the last time it is used. So this next code will run:
+```rust
+fn main() {
+    let mut s = String::from("hello");
+    let r1 = &s; // no problem
+    let r2 = &s; // no problem
+    println!("{r1} {r2}"); // end of scope for 'r1' and 'r2'
+    
+    let r3 = &mut s; // no problem
+    println!("{r3}");
+}
+```
+
+### Dangling References
+In a language with pointers, it's easy to erroneously create a *dangling pointer* - a pointer the references a location in memory that may be given to to something else - by freeing a memory while preserving a pointer to the memory. In Rust the compiler guarantees that reference will never be dangling references.
+If there is a reference to some data, the compiler will guarantee that the data will not go out of scope before the reference to the data does.
+```rust
+fn main() {
+    let reference_to_nothing = dangle(); // compile error
+}
+fn dangle() -> &String { // returns a reference to a String
+    let s = String::from("hello"); // s is a new String
+    &s // the reference to that String is returned
+} // but here the s String goes out of scope and is dropped
+```
+
+### The Rules of References
+* Ate any given time, you can have either one mutable reference or multiple immutable references.
+* References must always be valid.
+
+## Slices
 
