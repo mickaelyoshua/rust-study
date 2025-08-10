@@ -341,5 +341,136 @@ Keeping track of what parts of code are using data on the heap, minimizing the a
 * There can be only one owner at a time;
 * When the owner goes out of scope, the value will be dropped.
 
-## Variable Scope
+For example, the string literals are allocated on the *stack* and can not be changed. But the `String` type is allocated on the *heap* and can be modifyed.
+```rust
+fn main() {
+    let s = "hello"; // this is a string literal, is immutable and allocated on the stack
+    println!("{s}");
+
+    let s = String::from(s); // this is a String type, is allocated on the heap
+    println!("{s}");
+
+    let mut s = s; // it can be mutable
+    s.push_str(", world!");
+    println!("{s}");
+}
+```
+
+In the case of a string literal it is known the content at compile time, so the text is hardcoded directly in the the executable and this is only possible because of its immutability.
+With the `String` type, in order to support a mutable, growable text is needed to allocate an amount of memory on the *heap*, This means:
+* The memory must be requested from the memory allocator at runtime (allocate).
+* It is needed a way of returning this memory to the allocator when it is done with the `String` (free).
+
+The first part is done on the code (`String::from(s)`), the second in Rust the memory is automatically returned to the allocator once the variable that owns the memory is out of scope.
+```rust
+fn main() {
+    { // 's' not available because is not declared
+        let s = String::from("hello");
+        // do stuff with 's'
+    } // 's' no longuer available because is out of scope
+}
+```
+
+When a variable is out of scope, Rust calls the function `drop`. This function is called to the variable at the closing curly bracket.
+
+## Variables and Data Interaction with Move
+Multiple variables can interact with the same value in different way in Rust.
+```rust
+fn main() {
+    // deep copy
+    let x = 5; // giving value to x
+    let y = x; // copying the value of x to y
+    // now whe have two variable in two memory spaces on the stack
+    
+    // almost shallow copy | it is a move since 's1' will no longer be available
+    let s1 = String::from("hello"); // a reference to the heap allocation is been stored on the
+    // stack (pointer, length and capacity)
+    let s2 = s1; // the pointer, length and capacity are been copyed to s2, but the content on the
+    // heap remais the same
+
+    // to avoid double free error, 's1' is no longer available
+}
+```
+
+On the previous code it is possible to see that the behavior of Move is different from variable allocated on the stack and allocated on the heap.
+The problems here is: when both `s1` and `s2` goes out of scope if could occur a *double free* error, the `drop` function would be called to the same heap memory allocated. Rust ensuure memory safty by making the `s1` variable no longer valid.
+The completly copy on the `x` and `y` is called a *deep copy*, it the `s1` continued to be available would be a *shallow copy*. Since `s1` become invalid it is a *move*. `s1` moved to `s2`.
+
+## Scope and Assingnment
+When assigning a new value to an existing variable, Rust will automaticaly call `drop` and free up the space originally occupyed.
+```rust
+fn main() {
+    let mut st = String::from("hello");
+    st = String::from("ahoy");
+    println!("{st}, world!")
+    // the reassign will automatically free the previous memory to allocate and store a new one
+}
+```
+
+## Variables and Data Interaction with Clone
+To *deep copy* the heap data of a `String` it is possible using the method `clone`.
+```rust
+fn main() {
+    let st1 = String::from("hello");
+    let st2 = st1.clone();
+    println!("st1 = {st1} st2 = {st2}");
+}
+```
+
+## Ownership and Functions
+Pass a variable to a function works the same way as passing to another variable, by copy or move.
+```rust
+fn main() {
+    let str = String::from("hello");
+    takes_ownership(str); // str move to function, so is no longer valid here
+    // str is no longer available
+    
+    let x = 5;
+    makes_copy(x); // just copy the value into the function
+}
+
+fn takes_ownership(s: String) {
+    println!("{s}");
+}
+fn makes_copy(i: i32) {
+    println!("{i}");
+}
+```
+
+## Return Values and Scope
+Returning values can also transfer ownership.
+```rust
+fn main() {
+    let str1 = gives_ownership(); // created inside function and ownership given to 'str1'.
+    let str2 = String::from("hello");
+    let str3 = takes_and_gives_back(str2); // takes ownership from `str2` and make it invalid.
+    // gives the ownership to 'str3'
+
+    println!("str1 = {str1}; str3 = {str3}");
+}
+
+fn gives_ownership() -> String {
+    String::from("hello")
+}
+fn takes_and_gives_back(s: String) -> String {
+    s
+}
+```
+When a variable that includes data on the heap goes out of scope the data is freed unless ownership is moved to another variable.
+
+### Multiple Returns as Tuples
+```rust
+fn main() {
+    let s1 = String::from("h1");
+    let (s2, len) = calculate_length(s1); // takes ownership from s1 and gives to s2
+    println!("String: {s2} Length: {len}");
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len();
+    (s, length)
+}
+```
+
+## References and Borrowing
 
