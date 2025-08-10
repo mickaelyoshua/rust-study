@@ -568,4 +568,136 @@ fn dangle() -> &String { // returns a reference to a String
 * References must always be valid.
 
 ## Slices
+Slices let you reference a contiguous sequence os element in a collection (tuples, arrays). Since is a type of reference, it does not habe ownership.
+Solve a problem of get first word without slices:
+```rust
+fn main() {
+    let mut s = String::from("Hello World!");
+    let index = first_word(&s);
+
+    s.clear(); // empties the string making it equal to ""
+    // trying to get the first word from 's' would cause an error
+    // because the content of 's' changed.
+}
+
+fn first_word(s: &String) -> usize {
+    let bytes = s.as_bytes(); // converting to bytes to go through each element
+
+    for (i, &item) in bytes.iter().enumerate() { // creates an iterator to go through the bytes and
+        // enumerate to get the index
+        if item == b' ' { // search the byte that is the first space
+            return i; // return the index
+        }
+    }
+    s.len() // if there is no space, return the index for the entire string
+}
+```
+
+### String Slices
+A *string slice* is a reference to a contiguous sequence of element of a `String`.
+```rust
+fn main() {
+    let s = String::from("hello world");
+
+    let hello = &s[0..5]; // "hello"
+    let world = &s[6..11]; // "world"
+}
+```
+The syntax is `[start_index..end_index]` where `start_index` is the first position and `end_index` is the desired position plus one.
+So, in the case of `let world = &s[6..11];`, would be a slice that contains a pointer to the byte of index `6` and a length of `5` (11-6).
+If you want to start at index 0, you can drop the `start_idex`.
+```rust
+    let hello = &s[..5];
+```
+With the same logic, to get to the last byte on the `String`, just drop the `end_index`.
+```rust
+    let world = &s[6..];
+```
+To take a slice from all the `String`, drop both.
+```rust
+    let slice = &s[..];
+```
+
+> Note: String slice range indices must occur at valid UTF-8 character boundaries. If you attempt to create a string slice in the middle of a multibyte character, your program will exit with an error.
+
+Now back to the first word problem, but with slice:
+```rust
+fn main() {
+    let mut s = String::from("Hello World!");
+    let word = first_word_slice(&s);
+    println!("First word: {word}");
+}
+fn first_word_slice(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[..i];
+        }
+    }
+    &s[..]
+}
+```
+
+### String Literals as Slices
+String literals are stored inside the binary, and that is what slices are.
+```rust
+    let s = "Hello world!";
+```
+The type of `s` is `&str`: it's a slice pointing to that specific point of the binary. This is also why string literals are immutable, `&str` is a immutable reference.
+
+### String Slices as Parameters
+The fact that it is possible take slices from String leads us to an improvemnt on the first word problem:
+```rust
+fn main() {
+    let s = String::from("Hello World!"); // it does not need to me mutable
+    let word = first_word_slice(&s);
+    println!("First word: {word}");
+}
+fn first_word_slice(s: &str) -> &str { // take a slice as a parameter
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[..i];
+        }
+    }
+    s // since it is already a slice, return 's' entirely
+}
+```
+This flexibility takes advantage of *deref coercions* (it can convert a `&String` to a `&str` because `String` implements `Deref` trait to return `&str`).
+So all of this is possible:
+```rust
+fn main() {
+    let my_string = String::from("hello world");
+
+    // `first_word` works on slices of `String`s, whether partial or whole.
+    let word = first_word(&my_string[0..6]);
+    let word = first_word(&my_string[..]);
+    // `first_word` also works on references to `String`s, which are equivalent
+    // to whole slices of `String`s.
+    let word = first_word(&my_string);
+
+    let my_string_literal = "hello world";
+
+    // `first_word` works on slices of string literals, whether partial or
+    // whole.
+    let word = first_word(&my_string_literal[0..6]);
+    let word = first_word(&my_string_literal[..]);
+
+    // Because string literals *are* string slices already,
+    // this works too, without the slice syntax!
+    let word = first_word(my_string_literal);
+}
+```
+
+### Other Slices
+The same way it is possible to refer to a part of a string, it is possible to refer to a part of an array too.
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+    let slice = &a[1..3];
+    assert_eq!(slice, &[2,3]); // true
+}
+```
 
