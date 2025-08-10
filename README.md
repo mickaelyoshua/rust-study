@@ -701,3 +701,4 @@ fn main() {
 }
 ```
 
+# Struct
