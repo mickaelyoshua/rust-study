@@ -1084,3 +1084,110 @@ impl Rectangle {
     }
 }
 ```
+
+# Enums
+## Defining Enums
+Where structs gives a way to group data together, enums give a way of saying a value is one of a possible set of values. For example, we may want to say that `Rectangle` is one of a set of possible shapes that also include `Circle` and `Triangle`. To do this, Rust allows to encode these possibilities as an enum.
+
+Say we need to work with IP addresses. We will only get two variations of IP addresses, version four and version six. We can *enumerate* all possible variants, which is where enumeration gets its name. An IP address can be version four or version six, but not both at the same time. This property makes the enum data structure appropriate. Since version four and version six are still IP addresses, they should be treated as the same type.
+```rust
+enum IpAddrKind {
+    V4,
+    V6,
+}
+```
+
+## Enum Values
+It is possible to create instances of each variant:
+```rust
+fn main() {
+    let four = IpAddrKind::V4;
+    let six = IpAddrKind::V6;
+}
+```
+
+Now `four` and `six` are the same type, `IpAddrKind`. So it is possible to create a function that accept both as parameter.
+```rust
+fn route(ip_kind: IpAddrKind) {}
+
+fn main() {
+    route(IpAddrKind::V4);
+    route(IpAddrKind::V6);
+}
+```
+
+So if we want to bind the actual IP address with the `IpAddrKind` we could use struct, but it is morre concise to use this concept with the enum itself.
+```rust
+enum IpAddr {
+    V4(String),
+    V6(String),
+}
+
+fn main() {
+    let home = IpAddr::V4(String::from("127.0.0.1"));
+    let loopback = IpAddr::V6(String::from("::1"));
+}
+```
+
+Along side with attach data to each variant, each variant also becomes a function that constructs an instance of the enum. So `IpAddr::V4()` is a function call that takes a `String` as argument and returns an instance of `IpAddr`.
+
+Another advantage of enums over struct is that each variant can have different types and amounts of associated types.
+```rust
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+
+fn main() {
+    let home = IpAddr::V4(127, 0, 0, 1);
+    let loopback = IpAddr::V6(String::from("::1"));
+}
+```
+
+However, wanting to store IP addresses an encode witch kind they are is so common that the standard library has a definition we can use.
+```rust
+struct Ipv4Addr {
+    // something
+}
+struct Ipv6Addr {
+    // something
+}
+
+enum IpAddr {
+    V4(Ipv4Addr),
+    V6(Ipv6Addr),
+}
+```
+Another example with a variety of types embedded:
+```rust
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+```
+
+It is also possible to define method to enums with `impl`:
+```rust
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+impl Message {
+    fn call(&self) {
+        // something
+    }
+}
+
+fn main() {
+    let m = Message::Write(String::from("hello"));
+    m.call();
+}
+```
+
+## The Option Enum and Its Advantages Over Null Values
+

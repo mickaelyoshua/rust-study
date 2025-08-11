@@ -5,7 +5,7 @@ struct Rectangle {
 }
 
 impl Rectangle {
-    fn square(size: u32) -> Self { // Self is an alias for Rectangle
+    fn square(size: u32) -> Self {
         Self {
             width: size,
             heigth: size,
