@@ -702,3 +702,385 @@ fn main() {
 ```
 
 # Struct
+```rust
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+
+fn main() {
+    let mut user1 = User {
+        active: true,
+        username: String::from("username"),
+        email: String::from("user@name.com"),
+        sign_in_count: 1,
+    };
+
+    user1.email = String::from("user1@name.com");
+    println!("Email: {}", user1.email);
+}
+```
+In order to change a field on a structure the entire `User` instance must be mutable. Rust does not allow only some fields being mutable.
+
+If a `build_user` function to return a `User` has the parameters with the same name as the struct fields it is possible to use the *Field Init Shortcut*.
+```rust
+// without field init shortcut
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username: username,
+        email: email,
+        sign_in_count: 1,
+    }
+}
+```
+
+```rust
+// with field init shortcut
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username,
+        email,
+        sign_in_count: 1,
+    }
+}
+```
+
+## Creating Instances from Other Instances With Struct Update Syntax
+```rust
+// without struct update syntax
+fn main() {
+    user1 = User {
+        ...
+    }
+
+    let user2 = User {
+        active: user1.active,
+        username: user1.username,
+        email: String::from("user2@name.com"),
+        sign_in_count: user1.sign_in_count,
+    };
+}
+```
+
+```rust
+// with struct update syntax
+fn main() {
+    user1 = User {
+        ...
+    }
+
+    let user2 = User {
+        email: String::from("user2@name.com"),
+        ..user1
+    };
+}
+```
+The `..` specifies that the remainig fields not explicitly changed have the same values as the fields in the given instance. Is it is automaticaly passing the fields as arguments.
+The `..user1` must come last. This operation will move the data from `user1` to `user2`, witch means that `user1` will no longuer be available. This happens because the the `String` value in `username` of `user1` was moved. It it was given to the `username` field of `user2` a new value, `user1` would still be valid, since the `sign_in_count` would not be moved but copyed.
+Curiously the `user1.email` is istill available since it was not moved.
+```rust
+fn main() {
+    user1 = User {
+        ...
+    }
+
+    let user2 = User {
+        email: String::from("user2@name.com"),
+        ..user1
+    };
+
+    println!("user1 email: {}\nuser2 email: {}", user1.email, user2.email); // valid
+}
+```
+### Important
+The use of `String` type on the `User` struct is a choice so the data is owned by the structure and the data to be valid as long as the entire struct is valid. It wouldn't work is instead of `String` is a literal string (`&str`), this would be possible using *lifetime*, ensuring that the data referenced by a struct is valid for as long the struct is valid too.
+
+## Tuple Struct
+Have the added meaning that struct provides but without named fields, have just the type of the fields. Usefull to give name to tuples and distinguish one from another.
+```rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+fn main() {
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+}
+```
+
+This way `black` and `origin` have the same values but are different types. In order to destructure a tuple struct is necessary to name the type. To access the values inside is the same way as the tuples.
+```rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+fn main() {
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+
+    println!("point: {}, {}, {}", origin.0, origin.1, origin.2);
+    let Color(r, g, b) = black;
+    println!("color: {}, {}, {}", r, g, b);
+}
+```
+
+## Unit-Like Struct
+Those are structs that have no fields. Behave similarly to `()`. Can be useful when implementing a trait on some type but don't have any data to store in the type itself.
+```rust
+struct AlwaysEqual;
+
+fn main() {
+    let subject = AlwaysEqual;
+}
+```
+Imagine that later we’ll implement behavior for this type such that every instance of AlwaysEqual is always equal to every instance of any other type, perhaps to have a known result for testing purposes. We wouldn’t need any data to implement that behavior.
+
+## Example - Rectangle
+```rust
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+fn area(rect: &Rectangle) -> u32 { // & to borrow, not to take ownership
+                                // keeping the struct valid after
+    rect.heigth * rect.width
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        heigth: 50,
+    };
+
+    println!("Area is: {}", area(&rect1));
+}
+```
+
+If we try to print directly the `Rectangle` variable (`println!("{rect1}")`) it would get this compile error: `Rectangle` doesn't implement `std::fmt::Display`. The `println!` macro can do many kinds of formatting an the curly brackets tell `println!` to use `Display`, an implementation that the basic types have.
+Along side with the error message if we try to print directly `rect1` have this message: note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead. Instead of implementing the `Display` for `Rectangle` (latter for this), we will try this *derived trait*.
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+fn area(rect: &Rectangle) -> u32 { // & to borrow, not to take ownership
+                                // keeping the struct valid after
+    rect.heigth * rect.width
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        heigth: 50,
+    };
+
+    println!("Rectangle: {rect1:?}");
+    println!("Area is: {}", area(&rect1));
+}
+```
+Putting the specifier `:?` inside the curly brackets tells `println!` to use an output format called `Debug`. Only this is not enough because `Rectangle` does not implement `Debug`. To make the functionality of printing debug information is added the outer attribute `#[derive(Debug)]` before the struct definition.
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+fn area(rect: &Rectangle) -> u32 { // & to borrow, not to take ownership
+                                // keeping the struct valid after
+    rect.heigth * rect.width
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        heigth: 50,
+    };
+
+    println!("Rectangle: {rect1:?}");
+    println!("Area is: {}", area(&rect1));
+}
+```
+For big structs we can use `{:#?}` instead of `{:?}`. It prints on a more structured way.
+Another way to print using the `Debug` format is wwith the macro `dbg!`. The difference for the `println!` is that it takes ownership and it show more details about the file and the runnig file and the line number.
+```rust
+    dbg!(&rect1); // borrowing, if not if takes ownership
+```
+
+Since `dbg!` is an expression, it returns a value, so if can be used o differents parts of the code for debbuging.
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+fn area(rect: &Rectangle) -> u32 {
+    rect.heigth * rect.width
+}
+
+fn main() {
+    let scale = 2;
+    let rect1 = Rectangle {
+        width: dbg!(30 * scale), // return and print the operation and result
+        heigth: 50,
+    };
+
+    println!("Rectangle: {rect1:#?}");
+    println!("Area is: {}", area(&rect1));
+    dbg!(&rect1);
+}
+```
+
+## Method Syntax
+Change the `area` function to me a method of `Rectangle`.
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+impl Rectangle { // implementation context for Rectangle
+    fn area(&self) -> u32 { // '&self' is a shortcut for 'self: &self'
+        self.width * self.heigth
+    }
+}
+
+fn main() {
+    let scale = 2;
+    let rect1 = Rectangle {
+        width: dbg!(30 * scale),
+        heigth: 50,
+    };
+
+    println!("Rectangle: {rect1:#?}");
+    println!("Area is: {}", rect1.area());
+    dbg!(&rect1);
+}
+```
+`&self` is a shortcut for `self: &Self`. The `Self` type is an alias for the type that `impl` block is for. Rust methods must have the `&self` as the first parameter. The use of the `&` is for the method borrow the `Self` instance, same logic from previous cases. Methods can take ownership of `Self`, borrow it  immutably or borrow mutably.
+It is possible to name method with the same name as fields:
+```rust
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.heigth
+    }
+
+    fn width(&self) -> bool {
+        self.width > 0
+    }
+}
+
+fn main() {
+    println!("Width is bigger then 0? {}", rect1.width());
+}
+```
+
+### Curiosity: Rust's Method Call Syntax (No `->` Operator)
+This text explains why Rust does not have the `->` operator commonly found in C and C++, and what mechanism it uses instead.
+
+#### The C/C++ Approach
+In C and C++, two distinct operators are used for calling methods:
+* The `.` operator is used to call a method on an object directly.
+    * `object.method()`
+* The `->` operator is used to call a method on a *pointer* to an object. It first dereferences the pointer and then calls the method.
+    * `pointer->method()` is equivalent to `(*pointer).method()`
+
+#### The Rust Approach: Automatic Referencing and Dereferencing
+Rust simplifies this by using only the `.` operator for all method calls. It achieves this through a feature called *automatic referencing and dereferencing*.
+
+* **How it Works**: When you write `object.method()`, the Rust compiler automatically adds the necessary symbols (`&`, `&mut`, or `*`) to `object` to match the signature of the method being called.
+
+* **The Role of `self`**: This behavior is possible because every Rust method has a clear "receiver"—the first parameter, which is always a variation of `self`:
+    * `self`: The method takes ownership of the object.
+    * `&self`: The method takes an immutable reference (a borrow).
+    * `&mut self`: The method takes a mutable reference (a mutable borrow).
+
+    The compiler checks the method's definition and automatically applies the correct operation to the object you're calling the method on. For example, `p1.distance(&p2)` and `(&p1).distance(&p2)` are treated as the same if the `distance` method is defined to take `&self`.
+
+* **Primary Benefit**: This feature makes Rust's strict ownership and borrowing rules much more *ergonomic* and user-friendly. It leads to cleaner code because the programmer doesn't need to manually write `(*object).method()` or `(&object).method()` just to satisfy the compiler.
+
+## Methods With Multiple Params
+```rust
+struct Rectangle {
+    width: u32,
+    heigth: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.heigth
+    }
+
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.heigth > other.heigth
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        heigth: 50,
+    };
+    let rect2 = Rectangle {
+        width: 10,
+        heigth: 40,
+    };
+    let rect3 = Rectangle {
+        width: 60,
+        heigth: 45,
+    };
+
+    println!("rect1 hold rect2? {}", rect1.can_hold(&rect2));
+    println!("rect1 hold rect3? {}", rect1.can_hold(&rect3));
+}
+```
+
+## Associated Functions
+All functions defined within the `impl` block are called *associated functions*. We can define associated functions without the `&self` as a parameter (so it is not a method), because it don't need an instance of the struct to work with.
+To call an associated function is used the `::` to do so, just as used in `String::from()`.
+```rust
+#[derive(Debug)]
+impl Rectangle {
+    fn square(size: u32) -> Self { // Self is an alias for Rectangle
+        Self {
+            width: size,
+            heigth: size,
+        }
+    }
+}
+fn main() {
+    let sq = Rectangle::square(50);
+    dbg!(&sq);
+}
+```
+
+## Multiple `impl` Blocks
+It is a valid syntax and is just like it's all inside one single `impl` block.
+```rust
+
+impl Rectangle {
+    fn square(size: u32) -> Self {
+        Self {
+            width: size,
+            heigth: size,
+        }
+    }
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.heigth > other.heigth
+    }
+
+    fn area(&self) -> u32 {
+        self.width * self.heigth
+    }
+}
+```
