@@ -1503,3 +1503,30 @@ fn describe_state_quarter(coin: Coin) -> Option<String> {
 ```
 
 If you have a situation in which your program has logic that is too verbose to express using a `match`, remember that `if let` and `let...else` are in your Rust toolbox as well.
+
+# Managing Growing Projects with Packages, Crates and Modules
+Rust has a number of features that allows to manage code organization. These features, sometimes collectively called as the *module system*, include:
+* **Packages:** A Cargo feature that lets you build, test and share crates
+* **Crates:** A tree of modules that produces a library or executable
+* **Modules and use:** Let you control the organization, scope and privacy of paths
+* **Paths:** A way of naming an item, such as a struct, function or module
+
+## Packages and Crates
+A *crate* is the smallest amount of code that the Rust compiler considers at a time. Crates can contain modules, and modules may be defined in other files that get compiled with the crate.
+
+A crate can come in one of two forms: a binary crate or a libraby crate. *Binary crates* are programs compiled into a executable that you can run. Each must have a function called `main` that defines what happens when the executable runs.
+
+*Library crates* don't have a `main` function, and they don't compile to an executable. They define functionality intended to be shared with multiple projects. For example, the `rand` crate used before.
+
+The *crate root* is a source file that the Rust compiler starts from and makes up the root module of your crate.
+
+A *package* is a bundle of one or more crates that provides a set of functionality. A package contains a *Cargo.toml* file that describes how to build those crates.
+
+A package can contain as many binary crates as you like, but at most only one library crate. A package must contain at least one crate, whether that's a binary or library crate.
+
+After running `cargo new new-project` is created a `Cargo.toml` file and the `src/main.rs` directory and file. `Cargo.toml` defines that is a package, inside of it there is no mention of `src/main.rs`. Cargo follows the convention that `src/main.rs` is the crate root of a binary crate with the same name as the package. Likewise, Cargo knows that if the package directory contains `src/lib.rs`, the package contains a library crate with the same name as the package and `src/lib.rs` is its crate root. Cargo passes the crate root to `rustc` to build the library or binary.
+
+A package can have multiple binary crates by placing files in the `src/bin` directory: each file will be a separeted binary crate.
+
+## Defining Modules to Control Scope and Privacy
+
