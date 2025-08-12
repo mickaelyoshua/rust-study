@@ -1529,4 +1529,86 @@ After running `cargo new new-project` is created a `Cargo.toml` file and the `sr
 A package can have multiple binary crates by placing files in the `src/bin` directory: each file will be a separeted binary crate.
 
 ## Defining Modules to Control Scope and Privacy
+### Modules Cheat Sheet
+Here is a quick reference on how modules, paths, the `use` keyword and the `pub` keyword work in the compiler, and how most developers organize their code.
+* **Start from the crate root**: When compiling a crate, the compiler first looks in the crate root file (usualy *src/lib.rs* for a library crate or *src/main.rs* for a binary crate) for code to compile.
+* **Declaring modules**: In the crate root file, you can declare new modules; say you declare a "garden" module with `mod garden;`. The compiler will look for the module's code in these places:
+    * Inline, within curly brackets that replace the semicolon following the `mod garden`
+    * In the file *src/garden.rs*
+    * In the file *src/garden/mod.rs*
+* **Paths to code in modules**: Once a module is part of your crate, you can refer to code in that module from anywhere else in the same crate, as long as the privacy rules allow, using the path to the code. For example, an `Asparagus` type in the garden vegetables module would be found at `crate::garden::vegetables::Asparagus`.
+* **Private vs. Public**: Code within a module is private from its parent module by default. To make a module public, declare it with `pub mod` instead of `mod`. To make itens within a public module public as well, use pub before their declaration.
+* **The `use` keyword**: Within a scope, the `use` keyword creates a shortcut to items to reduce repetition of long paths. In any scope that can refer to `crate::garden::vegetables::Asparagus`, you can create a shortcut with `use crate::garden::vegetables::Asparagus;` and from then on you only need to write `Asparagus` to make use of that type in the scope.
+
+A binary crate called *backyard*:
+backyard
+├── Cargo.lock
+├── Cargo.toml
+└── src
+    ├── garden
+    │   └── vegetables.rs
+    ├── garden.rs
+    └── main.rs
+
+The use:
+```rust
+use crate::garden::vegetables::Asparagus;
+
+pub mod garden;
+
+fn main() {
+    let plant = Asparagus {};
+    println!("I'm growing {plant:?}!");
+}
+```
+
+The `pub mod garden;` line tells the compiler to include the code it finds in *src/garden.rs* which is:
+```rust
+pub mod vegetables;
+```
+
+Here `pub mod vegetables;` means the code in *src/garden/vegetables.rs* is included too. That code is:
+```rust
+#[derive(Debug)]
+pub struct Asparagus {}
+```
+
+Now let’s get into the details of these rules and demonstrate them in action!
+
+### Grouping Related Code in Modules
+*Modules* let us organize code within a crate for readability and easy reuse. Also allow us to control the *privacy* of items because code within a module is private by default.
+
+Crate a new library named `restaurant` by running `cargo new restaurant --lib`. Then edit the file *src/lib.rs*:
+```rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+        fn serve_order() {}
+        fn take_payment() {}
+    }
+}
+```
+
+A module is defined with the `mod` keyword followed by the name of the module. Inside modules we can place other modules, in this case are `hosting` and `serving`. Modules can also hold definitions for other itens, such as structs, enums, constants, traits and functions.
+
+We can group related definitions together and name why they are related.
+
+*src/main.rs* and *src/lib.rs* are crate roots. The reason for their name is that the contents of either of these two files form a module name `crate` at the root of the crate's module structure, known as the *module tree*:
+
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+
+## Paths for Referring to an Item in the Module Tree
 
