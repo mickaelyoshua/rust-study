@@ -1190,4 +1190,316 @@ fn main() {
 ```
 
 ## The Option Enum and Its Advantages Over Null Values
+`Option` is a enum defined by the standard libraby. It encodes the scenario in witch a value could something or nothing. This functionality can prevent bugs that are extremely commom in other languages.
+Rust does not have the `null` feature that other languages have (like `nil` in Go). I his 2009 presentation "Null References: THe Billion Dolar Mistake", Tony Hoare, the inventor of null, said this:
+> I call it my billion-dollar mistake. At that time, I was designing the first comprehensive type system for references in an object-oriented language. My goal was to ensure that all use of references should be absolutely safe, with checking performed automatically by the compiler. But I couldn’t resist the temptation to put in a null reference, simply because it was so easy to implement. This has led to innumerable errors, vulnerabilities, and system crashes, which have probably caused a billion dollars of pain and damage in the last forty years.
 
+The problem with null values is when you try to use a null value as a non-null value. You'll get an error. But the concept is valid: a null ias a value that is currently invalid or absent.
+
+Instead of null, Rust have an enum that can encode the concept. This enum is `Option<T>`:
+```rust
+enum Option<T> {
+    None,
+    Some(T),
+}
+```
+
+The `Option<T>` doesn't need to be included from the standard library, is already available and its variants too, `Some` and `None` can be directly used directly without `Option::` prefix. Some examples:
+```rust
+fn main() {
+    let some_number = Some(5); // type is Option<i32>
+    let some_char = Some('e'); // type is Option<char>
+
+    let absent_number: Option<i32> = None;
+}
+```
+
+For the use of `None` is required to specify the overall `Option` type, the compiler can't infer the type in this situation since it is `None`.
+
+When there is a `Some` value is guaranted that a value is present and it is held within `Some`. With `None` is similar to null, no value available, but what is the advantage of having an `Option<T>` to `None`?
+
+Because since `Option<T>` and `T` are different types, the compiler won't allow to use an `Option<T>` as if it were definitly a valid value. E.g.:
+```rust
+fn main() {
+    let x: i8 = 5;
+    let y: Option<i8> = Some(5);
+
+    let sum = x + y; // not allowed by the compiler
+}
+```
+
+When we have a `i8` value, the compiler will ensure that is always a valid value removing the necessity fo checking for null value. Only when is an `Option<T>` type is necessary to check if it has a value and the compile will ensure that all the possibilities will be handled.
+
+You have to convert `Option<T>` to `T` before performing `T` operations.
+
+[enum `Option<T>` documentation](https://doc.rust-lang.org/std/option/enum.Option.html)
+
+## The `match` Control Flow Construct
+`match` allows to compare a value against a series of patterns and execute code based on those patterns matches. The compiler confirms that all possible cases are handled.
+
+Values go through each pattern in a `match`, and at the first pattern the value "fits", it falls into the associated code block. E.g.:
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel=> 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+```
+
+The code assiciated with the `match` arm is an expression (it returns something) and the value returned is the value that gets returned by the `match` expression.
+
+### Patters That Bind to Values
+Match arms can bind to the parts of the values that match the pattern. This is how we can extract values out of enum variants.
+```rust
+#[derive(Debug)]
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel=> 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {state:#?}");
+            25
+        },
+    }
+}
+```
+
+When a `Coin::Quarter` matches, the `state` variable will be bind to the value of that quarter's state. Then we can use `state` in the code for the arm. E.g.:
+```rust
+fn main() {
+    let c = value_in_cents(Coin::Quarter(UsState::Alabama));
+    println!("Value in cents: {c}");
+}
+```
+
+### Matching with `Option<T>`
+Handling with `match` the `Some` and the `None` variants of `Option`.
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        Some(i) => Some(i + 1), // the 'i' binds to the value in Some
+        None => None,
+    }
+}
+
+fn main() {
+    let five = Some(5);
+    let six = plus_one(five); // six = Some(6)
+    let none = plus_one(None); // none = None
+}
+```
+
+The `plus_one` is an implementation of a method for the `Option` enum called `map`. Using it would do a more short version of the code.
+```rust
+fn main() {
+    let five = Some(5);
+    let six = five.map(|i| i + 1); // If there is a valid value, it will return with the defined change 'i + 1',
+    //|i| is the declaration of the variable.
+    assert_eq!(six, Some(6));
+}
+```
+
+### Matches are Exhaustive
+The compiler will make sure that you covered all possibilities.
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        Some(i) => Some(i + 1),
+    }
+} // Compile error: Pattern `None` not covered
+```
+
+### Catch-All Pattern and the `_` Placeholder
+Catch-all is for all the non explicitly patterns declared.
+```rust
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_hat(),
+        7 => remove_hat(),
+        other => move_player(other),
+    }
+}
+
+fn add_hat() {}
+fn remove_hat() {}
+fn move_player(num_spaces: u8) {}
+```
+
+It will bind the `dice_roll` value to the `other` variable (if its not 3 or 7) and then pass as parameter to the `move_player` function. All the different possibilities for the `dice_roll` was not explicitly covered, but it will compile because of the catch-all left arm.
+
+If is needed a catch-all but don't want to use the value use `_`. This is a special pattern that match any value and does not bind to it.
+```rust
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_hat(),
+        7 => remove_hat(),
+        _ => reroll(),
+    }
+}
+
+fn add_hat() {}
+fn remove_hat() {}
+fn reroll() {}
+```
+
+To make nothing happen use the `()` (called *unit*, an empty return).
+```rust
+fn main() {
+    let dice_roll = 9;
+    match dice_roll {
+        3 => add_hat(),
+        7 => remove_hat(),
+        _ => (),
+    }
+}
+
+fn add_hat() {}
+fn remove_hat() {}
+```
+
+## Concise Control Flow with `if let` and `let else`
+The `if let` syntax lets you combine `if` and `let` into a less verbose way to handle values that match one pattern while ignoring the rest.
+```rust
+    let config_max = Some(3u8); // number 3 as an u8
+    match config_max {
+        Some(max) => println!("The maximum is configured to be {max}"),
+        _ => (),
+    }
+```
+
+Using the `if let` syntax:
+```rust
+    let config_max = Some(3u8);
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {max}");
+    }
+```
+
+The `if let` takes a pattern and an expression separated by an equal sign. It works the same way as a `match` where the expression is given to the `match` and the pattern is its first arm. The block of code only runs if the value matchs the pattern.
+
+Using `if let` is less typing, but also loses the exhaustive checking of `match`.
+
+We can include an `else` with the `if let` statement. The block of that goes with the `else` is the same as it would go with the `_` case in `match`.
+```rust
+    let config_max = Some(3u8);
+    if let Some(max) = config_max {
+        println!("The maximum is configured to be {max}");
+    } else {
+        println!("Another code");
+    }
+```
+
+## Staying on the "Happy Path" with the `let...else `
+The common pattern is to perform some computation when a value is present and return a default value otherwise.
+```rust
+#[derive(Debug)]
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+impl UsState {
+    fn existed_in(&self, year: u16) -> bool {
+        match self {
+            UsState::Alabama => year >= 1819,
+            UsState::Alaska=> year >= 1959,
+            // --snip--
+        }
+    }
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel=> 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {state:#?}");
+            25
+        },
+    }
+}
+```
+
+Then whe might use `it let` to match the type of the coin, introducing a `state` variable within the body of the condition. If we want to print something related to the year:
+```rust
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    if let Coin::Quarter(state) = coin {
+        if state.existed_in(1900) {
+            Some(format!("{state:?} is pretty old!"))
+        } else {
+            Some(format!("{state:?} is relatively new."))
+        }
+    } else {
+        None
+    }
+}
+```
+
+This get the job done, but it has pushed the job to the body of `if let` statement. We could also take advantage of the fact that expressions produce a value either to produce the `state` from the `if let` or return early: (You could do something similar with `match`)
+```rust
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    let state = if let Coin::Quarter(state) = coin {
+        state
+    } else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+
+It is good, but to make this common pattern nicer to express, Rust has `let...else`. This syntax takes a pattern on the left side and and expression on the right, very similar to `if let`, but it does not have an `if` branch, only an `else`. If the pattern matches, it will bind the value from the pattern in the outer scope. If does not match, the program will flow into the `else` arm witch must `return` from the function.
+```rust
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    let Coin::Quarter(state) = coin else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+
+If you have a situation in which your program has logic that is too verbose to express using a `match`, remember that `if let` and `let...else` are in your Rust toolbox as well.
