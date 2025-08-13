@@ -2009,3 +2009,133 @@ Like `struct`, a vector is freed when it goes out of scope.
 } // v goes OOS and is freed
 ```
 
+## Storing UTF-8 Encoded Text with String
+### Creating a New String
+```rust
+    let mut s = String::new(); // empty String
+```
+
+To make some initial data into a `String` we have the method `to_string` which is available to all types that implement the `Display` trait.
+```rust
+fn main() {
+    let data = "some data";
+    let s1 = data.to_string();
+
+    let s2 = "more data".to_string();
+}
+```
+
+And there is also the function `String::from()`.
+```rust
+    let s = String::from("inital content");
+```
+
+Since `String` are UTF-8 encoded, we can include any properly encoded data in them.
+```rust
+    let hello = String::from("السلام عليكم");
+    let hello = String::from("Dobrý den");
+    let hello = String::from("Hello");
+    let hello = String::from("שלום");
+    let hello = String::from("नमस्ते");
+    let hello = String::from("こんにちは");
+    let hello = String::from("안녕하세요");
+    let hello = String::from("你好");
+    let hello = String::from("Olá");
+    let hello = String::from("Здравствуйте");
+    let hello = String::from("Hola");
+```
+
+### Updating a String
+Like `Vec<T>`, strings can grow in size and its content can change. You can conveniently use the `+` operator or the `format!` macro to concatenate `String` values.
+
+#### Appending to a String with `push_str` and `push`
+```rust
+fn main() {
+    let mut s1 = String::from("foo");
+    let s2 = "bar";
+    s1.push_str(s2); // it takes a string slice, so it dont take ownership
+    println!("s1 + {s2} = {s1}"); // using s2 after
+}
+```
+
+The `push` method takes a single character as parameter and concatenates.
+```rust
+fn main() {
+    let mut s = String::from("lo");
+    s.push('l');
+    println!("{s}");
+}
+```
+
+#### Concatenating with the `+` Operator or the `format!` Macro
+```rust
+fn main() {
+    let s1 = String::from("Hello, ");
+    let s2 = String::from("world!");
+    let s3 = s1 + &s2; // s1 was moved, s2 just referenced
+    println!("s3: {s3}");
+}
+```
+
+It is not possible to add two `String` together, only a `&str` to a `String` and that is what must be done with the `+` operator. `&s2` is actualy a `&String` type, not a `&str`, but the compiler can use a *deref coercion*, which here turns `&str` into `&str[..]`. This behavior happens because the `add` function for the `+` operator is like this:
+```rust
+fn add(self, s: &str) -> String {
+```
+
+So it takes ownership of `self`, in this case of `s1`, making `s1` no longer valid after the plus operation.
+
+For combining strings in more complicated way there is the `format!` macro. Works like `println!` but instead of printing, returns a `String`.
+```rust
+fn main() {
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    let s = format!("{s1}-{s2}-{s3}");
+    println!("s: {s}"); // tic-tac-toe
+}
+```
+
+### Indexing into String
+It is not possible to access individual characters in a string by indexing like `s[0]`. To understand, lets see how they are internaly represented.
+
+#### Internal Representation
+A `String` is a wrapper over a `Vec<u8>`. If we create a `String` as follow:
+```rust
+    let hello = String::from("Hello");
+```
+
+`len` would be 4. It takes 1 byte to store each character on that string. But when creating this:
+```rust
+    let hello = String::from("Здравствуйте");
+```
+
+`len` should be 12 (since there is 12 characters) but is actualy 24, that's the number of bytes necessary to encode in UTF-8. This happens because each Unicode scalar value in that string takes 2 bytes of storage. Therefore, an index into the string's bytes will not always correlate to a valid Unicode scalar.
+
+To avoid returning an unexpected value and causing bugs that might not be discovered immediately, Rust doesn’t compile this code at all and prevents misunderstandings early in the development process.
+
+### Slicing Strings
+Indexing into a string if often a bad idea because is not clear what will return. If is really needed, instead of using `[]` with a single number, use it with a range.
+```rust
+fn main() {
+    let hello = String::from("Здравствуйте");
+    let s = &hello[0..4]; // since it is 2 bytes per char, it works
+    println!("{s}");
+}
+```
+
+If we were to try to slice only part of a character’s bytes with something like `&hello[0..1]`, Rust would panic at runtime in the same way as if an invalid index were accessed in a vector.
+
+### Methods for Iterating Over Strings
+```rust
+fn main() {
+    for c in "Зд".chars() {
+        println!("{c}"); // each char
+    }
+    for b in "Зд".bytes() {
+        println!("{b}"); // each byte
+    }
+}
+```
+
+## Storing Keys with Associated Values in Hash Maps
