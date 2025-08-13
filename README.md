@@ -1881,4 +1881,131 @@ fn main() {
 }
 ```
 
+# Common Collections
+Most other data types represent one specific value, but *collections* can contain multiple values. Rust's standard includes a number of useful *collections*. Tree of those are:
+* **Vector**: Allows to store a variable number of values next to each other.
+* **String**: Is a collection of characters.
+* **Hash Map**: Allows to associate a value with a specific key. It's a particular implementation of the general data structure called *map*.
+
+[Collections Documentation](https://doc.rust-lang.org/std/collections/index.html)
+
+## Storing Lists of Values with Vectors
+Vectors allows you to store more then one value in a single data structure that puts all the values next to each other in memory. Vectors can only store values of the same type. They are useful when you have a list of items, such as the lines of text in a file.
+
+### Creating a New Vector
+```rust
+let v: Vec<i32> = Vec::new();
+```
+
+Since is not beeing inserted any value, is necessary the type annotation `Vec<i32>`. Rust conveniently provides the `vec!` macro, which will create a new vector that hold the values you give.
+```rust
+let v = vec![1, 2, 3];
+```
+
+### Updating a Vector
+To add elements to a vector we can use the `push` method.
+```rust
+fn main() {
+    let mut v = vec![1, 2, 3];
+    dbg!(&v);
+
+    v.push(4);
+    v.push(5);
+    dbg!(&v);
+}
+```
+
+### Reading elements of Vectors
+There are two ways to reference a value stored in a vector: via indexing or with the `get` method.
+```rust
+fn main() {
+    let v = vec![1, 2, 3, 4, 5];
+
+    let third: &i32 = &v[2]; // getting a reference to the third value
+    println!("The third element is {third}");
+
+    let third: Option<&i32> = v.get(2); // 'get' returns an 'Option<&T>' value
+    match third {
+        Some(third) => println!("The third element is {third}"),
+        None => println!("There is no third element"),
+    };
+}
+```
+
+When trying to read an index out of range: (OOB - Out Of Bounds)
+```rust
+fn main() {
+    let v = vec![1, 2, 3, 4, 5];
+
+    let does_not_exist = &v[100]; // panics and oob error
+    let does_not_exist = v.get(100); // return `None` without panicking
+}
+```
+
+It is not possible to have a mutable and immutable references to the contents of the same object (in this case a vector).
+```rust
+fn main() {
+    let mut ve = vec![1, 2, 3, 4, 5];
+    let first = &ve[0];
+
+    ve.push(6); // compile error
+
+    println!("First: {first}");
+}
+```
+
+This error is due to the way vectors work: because vectors put the values next to each other in memory, adding a new element onto the end of the vector might require allocating new memory and copying the old elements to the new space, if there isn’t enough room to put all the elements next to each other where the vector is currently stored. In that case, the reference to the first element would be pointing to deallocated memory. The borrowing rules prevent programs from ending up in that situation.
+
+### Iterating Over the Values in a Vector
+```rust
+fn main() {
+    let v = vec![1, 2, 3, 4, 5];
+
+    for i in &v {
+        println!("{i}");
+    }
+}
+```
+
+We can also iterate on mutable references.
+```rust
+fn main() {
+    let mut v = vec![1, 2, 3, 4, 5];
+
+    for i in &mut v {
+        *i += 50;
+    }
+    dbg!(&v);
+}
+```
+
+### Using an Enum to Store Multiple Types
+Vectors can only store one type, so to store multiple types we can use enums.
+```rust
+#[derive(Debug)]
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String),
+}
+
+fn main() {
+    let row = vec![
+        SpreadsheetCell::Int(3),
+        SpreadsheetCell::Float(10.12),
+        SpreadsheetCell::Text(String::from("blue")),
+    ];
+    dbg!(&row);
+}
+```
+
+Rust needs to know what types will be in the vector at compile time to know how much memory is going to be allocated on the heap. Using an `enum` plus a `match` expression means that Rust will ensure at compile time that every possible case is handled.
+
+### Dropping a Vector Drops its Elements
+Like `struct`, a vector is freed when it goes out of scope.
+```rust
+{
+    let v = vec![1, 2, 3];
+} // v goes OOS and is freed
+```
 
