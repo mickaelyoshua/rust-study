@@ -2139,3 +2139,130 @@ fn main() {
 ```
 
 ## Storing Keys with Associated Values in Hash Maps
+The type `HashMap<K, V>` stores a mapping of keys of type `K` to values of type `V` using a *hashing funciton*.
+
+### Creating a New Hash Map
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+}
+```
+
+### Accessing Values in a Hash Map
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+
+    let team_name = String::from("Blue");
+    let score = scores.get(&team_name) // 'get' returns an 'Option<&V>', if there's no value,
+        // it will return 'None'
+        .copied() // This handles the 'Option' returned to get an 'Option<i32>' rather then an
+        // 'Option<&V>' (getting a copy, not a reference)
+        .unwrap_or(0); // return 0 if the does not have an entry for the key
+
+    println!("Score of team {team_name}: {score}");
+}
+```
+
+Iterating:
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+
+    for (key, value) in &scores { // reference so the value is not moved
+        println!("{key}: {value}");
+    }
+}
+```
+
+### Hash Maps and Ownership
+For types that implement the `Copy` trait, like `i32`, the value will be copyed into the hash map. For owned values like `String`, the values will be moved and the hash map will own the values.
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let field_name = String::from("Favorite color");
+    let value_name = String::from("Bluish Green");
+
+    let mut map = HashMap::new();
+    map.insert(field_name, value_name);
+    // now 'field_name' and 'value_name' are invalid
+    dbg!(&map);
+}
+```
+
+If we insert references to values into the hash map, the values won’t be moved into the hash map. The values that the references point to must be valid for at least as long as the hash map is valid.
+
+### Updating a Hash Map
+#### Overwriting a Value
+If we insert a key and a value into a hash map and insert the same key but a different value, the value will be overwrite.
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+
+    scores.insert(String::from("Blue"), 25);
+    dbg!(&scores);
+}
+```
+
+#### Adding a Key and Value Only If a Key Isn’t Present
+It's common to check whether a key already exists in the hash map to take the following action: if the key does exists, the existing value remains the same, if it doesn't insert the keyt and some value.
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert(String::from("Blue"), 10);
+
+    // create and insert 50
+    scores.entry(String::from("Yellow")) // returns a enum 'Entry' represention a value that
+        // exists or not
+        .or_insert(50); // method of 'Entry' that returns a mutable reference to the value if
+    // exists; if not, inserts the parameter as the new value for the given key
+
+    // keeps the previous value (10)
+    scores.entry(String::from("Blue"))
+        .or_insert(50);
+}
+```
+
+#### Updating a Value Based on the Old Value
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let text = "hello world wonderful world";
+    let mut map = HashMap::new();
+
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0); // 'or_insert' returns a mutable reference
+        // allowing to change the value
+        *count += 1;
+    }
+
+    println!("{map:?}"); // {"world": 2, "hello": 1, "wonderful": 1}
+}
+```
+
+#### hashing Functions
+By default, `HashMap` uses a hashing function called SipHash that can provide resistance to denial-of-service (DoS) attacks involving hash tables1. This is not the fastest hashing algorithm available, but the trade-off for better security that comes with the drop in performance is worth it. If you profile your code and find that the default hash function is too slow for your purposes, you can switch to another function by specifying a different hasher. A hasher is a type that implements the `BuildHasher` trait.
+
+# Error Handling
+
+

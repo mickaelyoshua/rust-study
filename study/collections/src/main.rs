@@ -1,12 +1,14 @@
-use collections::vect;
-use collections::string;
+use collections::{vect, string, hm};
 
 fn main() {
 
-    string::st::test();
+    // hm.rs
+    hm::hashmap::test();
     println!();
 
-
+    // string.rs file
+    string::st::test();
+    println!();
 
     // vect.rs file
     vect::v::test();
