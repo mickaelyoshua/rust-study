@@ -2264,5 +2264,168 @@ fn main() {
 By default, `HashMap` uses a hashing function called SipHash that can provide resistance to denial-of-service (DoS) attacks involving hash tables1. This is not the fastest hashing algorithm available, but the trade-off for better security that comes with the drop in performance is worth it. If you profile your code and find that the default hash function is too slow for your purposes, you can switch to another function by specifying a different hasher. A hasher is a type that implements the `BuildHasher` trait.
 
 # Error Handling
+## Recoverable Errors with `Result`
+The `Result` enum is defined as having two variants: `Ok` and `Err`:
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
 
+So if we try to read a file (which return a `Result`):
+```rust
+use std::fs::File;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt"); // the return type of is a Result<T, E>
+    // Here T is a std::fs::File and E is a std::io::Error
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening file: {error:?}"),
+    };
+}
+```
+
+## Matching on Different Errors
+Add a inner `match` expression.
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt"); 
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => match error.kind() { // the error returned is of type 'io::Errror'. It has a
+            // method called 'kind()' that return a io::ErrorKind
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating file: {e:?}")
+            },
+            _ => panic!("Problem opening file: {error:?}"),
+        }
+    };
+}
+```
+
+### Shortcuts for Panic on Error: `unwrap` and `expect`
+The `unwrap` method is a shortcut implemented just like the `match` expression wrote previously. If the `Result` is the `Err` variant, `unwrap` will call `panic!`.
+```rust
+use std::fs::File;
+
+fn main() {
+    let greeting = File::open("hello.txt").unwrap(); // if is an Err, call panic!
+}
+```
+
+Similarly, `expect` calls `panic!` but let us choose the error message too.
+```rust
+use std::fs::File;
+
+fn main() {
+    let greeting = File::open("hello.txt")
+        .expect("hello.txt should be included"); // if is an Err, call panic!
+}
+```
+
+### Propagating Errors
+When a function implementation calls something that might fail, instead of handling the error, it is possible to return the error to the caller and let the caller handle the error. This is called *propagating error*.
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let username_file_result = File::open("hello.txt");
+
+    let mut username_file = match username_file_result {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut username = String::new();
+    match username_file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+```
+
+### A shortcut for Propagating Errors: The `?` Operator
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username_file = File::open("hello.txt")?;
+
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username)
+}
+```
+
+The `?` placed after a `Result` variable is defined to work in almost the same way as the `match` expresssion defined previously. It will define that if `Result` is `Ok` then will return the value inside of `Ok`. If it is an `Err`, the `Err` will be returned for the whole function, like using a `return`.
+
+Error values that have the `?` operator called on the will go through the `from` function, defined in the `From` trait in the standard libraby which is used to convert types from one value to another. When the operator calls the `from` function, the error type defined received is converted into the error type defined in the return type of the current function.
+
+It is a very useful operator that can eliminates a lot of boilerplate.
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username = String::new();
+    File::open("hello.txt")?.read_to_string(&mut username)?;
+
+    Ok(username)
+}
+```
+
+An even shorter way to do it with `fs::read_to_string` from the standard libraby:
+```rust
+use std::fs;
+use std::io;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    fs::read_to_string("hello.txt")
+}
+```
+
+#### When the Operator `?` Can Be Used
+The `?` can only be used in functions where the return types are compatible with the value the `?` is used on.
+
+The `?` operator is only allowed to be used on a function that returns `Result`, `Option` or another type that implements `FromResidual`.
+
+The behavior of the `?` operator when called on an `Option<T>` is similar to its behavior when called on a `Result<T, E>`: if the value is `None`, the `None` will be returned early from the function at that point. If the value is `Some`, the value inside the `Some` is the resultant value of the expression, and the function continues.
+```rust
+fn last_char_of_first_line(text: &str) -> Option<char> {
+    text.lines().next()?.chars().last()
+    // lines return an iterator for the lines on the text
+    // next calls the next line, in this case the first one
+    // chars return an iterator for every character on the line
+    // last return the last char
+}
+```
+
+This is an `Option` because the first line can be empty.
+
+The `main` function can return a `Result<(), E>`:
+```rust
+use std::fs::File;
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let greeting_file = File::open("hello.txt")?;
+    Ok(())
+}
+```
+
+The `Box<dyn Error>>` type is a *trait object*, not covered yet, but for now means "any kind of error".
+
+The `main` function can return any type that implements the `std::process::Termination` trait, wich contains a function `report` that returns an `ExitCode`.
+
+## To `panic!` or Not To `panic!`
 
