@@ -2540,4 +2540,68 @@ Generics does not affect the code performance. Rust accomplishes this by perform
 *Monomorphization* is the process of turning generic code into specific code by filling in the concrete types that are used when compiled. In this process, the compiler looks at all the places where generic code is called and generates code for the concrete types the generic code is called with.
 
 ## Traits: Defining Shared Behavior
+A *trait* defines the functionality a particular type has and can share with other types. We can use it to define shared behavior in an abstract way.
+
+> Traits are similar to a feature often called *interface* in other pragramming languages (like Go), but with some differences.
+
+### Defining a Trait
+A type's behavior consists of the methods we can call on that type. Different type share the same behavior if we can call the same methods in all of then. Trait definition are a way to group method signatures together to define a set of bahaviors necessary to accomplish some purpose.
+
+For example, let’s say we have multiple structs that hold various kinds and amounts of text: a `NewsArticle` struct that holds a news story filed in a particular location and a `SocialPost` that can have, at most, 280 characters along with metadata that indicates whether it was a new post, a repost, or a reply to another post.
+
+We want to make a media aggregator library crate named `aggregator` that can display summaries of data that might be stored in a `NewsArticle` or `SocialPost` instance. To do this, we need a summary from each type, and we’ll request that summary by calling a `summarize` method on an instance. Listing 10-12 shows the definition of a public `Summary` trait that expresses this behavior.
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+```
+
+### Implementing a Trait on a Type
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{} by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct SocialPost {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub repost: bool,
+}
+impl Summary for SocialPost {
+    fn summarize(&self) -> String {
+        format!("{} : {}", self.username, self.content)
+    }
+}
+
+fn main() {
+    let post = SocialPost {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people"
+        ),
+        reply: false,
+        repost: false,
+    };
+    
+    println!("1 new post: {}", post.summarize());
+}
+```
+
+We can't implement external traits on external types, only if either the trait or the type, or both, are local to our crate. For example, we can't implement the `Display` trait on `Vec<T>` within a package created by us.
+
+
+### Default Implementation
 
