@@ -2427,5 +2427,117 @@ The `Box<dyn Error>>` type is a *trait object*, not covered yet, but for now mea
 
 The `main` function can return any type that implements the `std::process::Termination` trait, wich contains a function `report` that returns an `ExitCode`.
 
-## To `panic!` or Not To `panic!`
+# Generic Types, Traits and Lifetimes
+## Generic Data Types
+### In Function Definition
+Problem to get the largest value on a list:
+```rust
+fn largest<T>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+
+    for v in list {
+        if v > largest {
+            largest = v;
+        }
+    }
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    let result = largest(&number_list);
+    println!("Largest number: {result}");
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    let result = largest(&char_list);
+    println!("Largest char: {result}");
+}
+```
+
+This code above wouldn't still work because `T` is not restricted with the `PartialOrd` trait. More on that on the trait section.
+
+### In Struct Definition
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let integer = Point{ x: 5, y: 10 };
+    let float = Point{ x: 1.0, y: 4.0 };
+    let integer_float = Point{ x: 5, y: 4.0 };
+}
+```
+
+### In Enum Definition
+We've already seen:
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+enum Result<T,E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+### In Method Definition
+```rust
+struct Point<T,U> {
+    x: T,
+    y: U,
+}
+impl<T,U> Point<T,U> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point{ x: 5, y: 10 }; 
+    println!("p.x: {}", p.x);
+}
+```
+
+By declaring `T` as a generic type after `impl`, Rust can identify that the type in the angle brackets in `Point` is a generic type rather than a concrete type. We could have chosen a different name for this generic parameter than the generic parameter declared in the struct definition, but using the same name is conventional.
+
+It is possible specify constraints on generic types, implement a method to a specified type.
+```rust
+impl Point<f32, f32> { // only applies to T and U beeing f32
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+```
+
+Generic types in a structure aren't always the same as those used in the same struct's method signature.
+```rust
+struct Point<X1,Y1> {
+    x: X1,
+    y: Y1,
+}
+
+impl<X1,Y1> Point<X1,Y1> {
+    // get the y of another Point and mix with the current Point
+    fn mixup<X2,Y2> (self, other: Point<X2,Y2>) -> Point<X1,Y2> {
+        Point { x: self.x, y: other.y }
+    }
+}
+
+fn main() {
+    let p1 = Point{ x: 5, y: 10.4 };
+    let p2 = Point{ x: "Hello", y: 'c' };
+    let p3 = p1.mixup(p2);
+    println!("p3.x = {}\np3.y = {}", p3.x, p3.y); // 5 'c'
+}
+```
+
+### Performance of Code Using Generics
+Generics does not affect the code performance. Rust accomplishes this by performing monomorphization of the code using generics at compile time.
+
+*Monomorphization* is the process of turning generic code into specific code by filling in the concrete types that are used when compiled. In this process, the compiler looks at all the places where generic code is called and generates code for the concrete types the generic code is called with.
+
+## Traits: Defining Shared Behavior
 
