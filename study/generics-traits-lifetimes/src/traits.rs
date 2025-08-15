@@ -1,6 +1,20 @@
 pub mod tr {
+    fn largest<T: PartialOrd>(list: &[T]) -> &T {
+        let mut largest = &list[0];
+
+        for v in list {
+            if v > largest {
+                largest = v;
+            }
+        }
+        largest
+    }
+
     pub trait Summary {
         fn summarize(&self) -> String;
+    }
+    pub fn notify<T: Summary>(item: &T) {
+        println!("Breaking news! {}", item.summarize());
     }
 
     pub struct NewsArticle {
@@ -38,5 +52,13 @@ pub mod tr {
         };
         
         println!("1 new post: {}", post.summarize());
+
+        let number_list = vec![34, 50, 25, 100, 65];
+        let result = largest(&number_list);
+        println!("Largest number: {result}");
+
+        let char_list = vec!['y', 'm', 'a', 'q'];
+        let result = largest(&char_list);
+        println!("Largest char: {result}");
     }
 }

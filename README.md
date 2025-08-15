@@ -2604,4 +2604,194 @@ We can't implement external traits on external types, only if either the trait o
 
 
 ### Default Implementation
+```rust
+pub trait summary {
+    fn summarize(&self) -> string {
+        string::from("(read more...)")
+    }
+}
+```
 
+To use a default implementation to summarize instances of `NewsArticle`, we specify an empty `impl` block:
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+impl Summary for NewsArticle {} // use the default implementation
+
+fn main() {
+    let article = NewsArticle{
+        headline: String::from("Penguins win the Stanley Cup Championship!"),
+        location: String::from("Pittsburgh, PA, USA"),
+        author: String::from("Iceburgh"),
+        content: String::from(
+            "The Pittsburgh Penguins once again are the best \
+         hockey team in the NHL.",
+        ),
+    };
+
+    println!("New article available! {}", article.summarize());
+}
+```
+
+### Traits as Parameters
+```rust
+pub fn notify(item: &impl Summary) { // this parameter accepts any type the specified trait.
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+#### Trait Bound Syntax
+The `impl Trait` syntax works for straightforward cases but is actualy syntax sugar for a longer form known as *trait bound*.
+```rust
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+This version is more verbose, works the same as the previous one, so stick with the previous one and use *trait bound* only if necessary.
+
+But it is usefull when we want to enforce two parameters with the same type and having the same trait:
+```rust
+pub fn notify<T: Summary>(item1: &T, item2: &T) {
+```
+
+If we want to allow to have different types them:
+```rust
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {
+```
+
+#### Specifying Multiple Trait Bounds with the `+` Syntax
+```rust
+pub fn notify(item: &(impl Summary + Display)) { // item must implement Summary and Display
+```
+
+```rust
+pub fn notify<T: Summary + Display>(item: &T) {
+```
+
+#### Clearer Trait Bounds with the `where` Clauses
+Using too many trait bounds has its downsides. Each generic has its own trait bounds, so functions with multiple generic type parameters can contain lots of trait bound information between the function’s name and its parameter list, making the function signature hard to read. For this reason, Rust has alternate syntax for specifying trait bounds inside a `where` clause after the function signature. So, instead of writing this:
+```rust
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {
+```
+
+We can use a `where` clause like this:
+```rust
+fn some_function<T,U>(t: &T, u: &U) -> i32
+where
+    T: Display + Clone,
+    U: Clone + Debug,
+{ // start function implementation
+```
+
+### Returning Types that Implements Traits
+We can use the `impl Trait` syntax to return a value of some type that implements a trait:
+```rust
+fn returns_summarizable() -> impl Summary {
+    SocialPost {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people",
+        ),
+        reply: false,
+        repost: false,
+    }
+}
+```
+
+That way, it can return any type that implements `Summary`, but it only works if is return a single type. It can't return like `NewsArticle` or `SocialPost` like this:
+```rust
+fn returns_summarizable(switch: bool) -> impl Summary {
+    if switch {
+        NewsArticle {
+            headline: String::from(
+                "Penguins win the Stanley Cup Championship!",
+            ),
+            location: String::from("Pittsburgh, PA, USA"),
+            author: String::from("Iceburgh"),
+            content: String::from(
+                "The Pittsburgh Penguins once again are the best \
+                 hockey team in the NHL.",
+            ),
+        }
+    } else {
+        SocialPost {
+            username: String::from("horse_ebooks"),
+            content: String::from(
+                "of course, as you probably already know, people",
+            ),
+            reply: false,
+            repost: false,
+        }
+    }
+} // compile error
+```
+
+### Using Trait Bounds to Conditionally Implement Methods
+Remenbering the previous problem of a generic function to get the largest value of a collection variable, it wouldn't work because `T` does not implement the `PartialOrd` trait that enables comparison.
+```rust
+fn largest<T>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+
+    for v in list {
+        if v > largest {
+            largest = v;
+        }
+    }
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    let result = largest(&number_list);
+    println!("Largest number: {result}");
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    let result = largest(&char_list);
+    println!("Largest char: {result}");
+}
+```
+
+Now lets add the `PartialOrd`:
+```rust
+fn largest<T: PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+
+    for v in list {
+        if v > largest {
+            largest = v;
+        }
+    }
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    let result = largest(&number_list);
+    println!("Largest number: {result}");
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    let result = largest(&char_list);
+    println!("Largest char: {result}");
+}
+```
+
+Of course. Here is a summary in markdown format.
+
+### Key Concepts
+Traits and trait bounds allow you to use *generic types* while guaranteeing they have specific behaviors. This provides a powerful way to reduce code duplication without sacrificing safety.
+
+* **Specify Behavior**: Traits act like interfaces, defining a set of methods that a type must implement. Trait bounds on a generic function require any type used with that function to implement a specific trait.
+* **Compile-Time Verification**: The Rust compiler uses this information to check your code *before* it runs. It ensures that any type you use with a generic function has the necessary behavior.
+* **Error Prevention**: This moves potential errors from *runtime* (like calling a method that doesn't exist in a dynamically typed language) to *compile time*. You are forced to fix these issues before your program can even be executed.
+* **Performance Boost**: Because all checks are done at compile time, Rust doesn't need to perform runtime checks to verify behavior. This results in *faster code* without giving up the flexibility of generics.
