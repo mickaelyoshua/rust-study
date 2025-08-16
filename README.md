@@ -2921,5 +2921,23 @@ fn main() {
 }
 ```
 
-### Thinking in Terms of Lifetimes
+### Lifetime Annotation in Struct Definitions
+So far, the structs we’ve defined all hold owned types. We can define structs to hold references, but in that case we would need to add a lifetime annotation on every reference in the struct’s definition.
+```rust
+struct ImportantExcept<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some year ago...");
+    let first_sentence = novel.split(".").next().unwrap();
+    let i = ImportantExcept {
+        part: first_sentence,
+    };
+
+    println!("{}", i.part);
+}
+```
+
+### Lifetime Elision
 
