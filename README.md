@@ -3038,3 +3038,39 @@ where
     if x.len() > y.len() { x } else { y }
 }
 ```
+
+# Writing Automated Tests
+## How to Write Tests
+The bodies of test functions typically perform these tree actions:
+* Set up any needed data or state;
+* Run the code you want to test;
+* Assert that the results are what you expect.
+
+## The Anatomy of a Test Function
+A test in Rust is a function that is annotated with the `test` attribute. Attributes are metadata about pieces of Rust code; one example is the `derive` attribute. To change a function into a test function, add `#[test]` on the line before `fn`. When you run your tests with `cargo test` command, Rust build a test runner binary that runs the annotated functions and reports if the function passed or fail.
+
+Tests falis when something in a test function panics.
+```rust
+pub fn add(left: u64, right: u64) -> u64 {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() { // pass
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn another() { // fail
+        panic!("Make this test fail");
+    }
+}
+```
+
+## Checking Results with the `assert!` Macro
+
