@@ -2940,4 +2940,101 @@ fn main() {
 ```
 
 ### Lifetime Elision
+The Rust compiler uses three rules to infer lifetimes when they aren't explicitly annotated. This process is called **lifetime elision**. If the compiler cannot determine all reference lifetimes after applying these rules, it will issue an error, requiring you to add explicit annotations.
 
+These rules apply to `fn` definitions and `impl` blocks.
+
+#### Rule 1: One Lifetime per Input Reference
+The compiler assigns a distinct lifetime parameter to each reference in a function's input.
+  * A function with one reference parameter gets one lifetime parameter:
+    ```rust
+    // Elided
+    fn print(s: &str)
+
+    // Expanded by the compiler
+    fn print<'a>(s: &'a str)
+    ```
+  * A function with two reference parameters gets two separate lifetime parameters:
+    ```rust
+    // Elided
+    fn print_two(s1: &str, s2: &str)
+
+    // Expanded by the compiler
+    fn print_two<'a, 'b>(s1: &'a str, s2: &'b str)
+    ```
+
+#### Rule 2: Single Input Lifetime Propagates to Output
+If there is **exactly one** input lifetime parameter, that lifetime is assigned to all output lifetime parameters.
+  * This is the most common elision rule. It connects the lifetime of the output directly to the lifetime of the single input.
+    ```rust
+    // Elided
+    fn first_word(s: &str) -> &str
+
+    // Expanded by the compiler
+    fn first_word<'a>(s: &'a str) -> &'a str
+    ```
+
+#### Rule 3: `&self` Lifetime Propagates to Output
+If a method has multiple input lifetime parameters but one of them is `&self` or `&mut self`, the lifetime of `self` is assigned to all output lifetime parameters.
+  * This rule makes methods much more ergonomic to write, as it's a very common pattern for methods to return data derived from the `self` instance.
+    ```rust
+    // Elided
+    impl<'a> ImportantExcerpt<'a> {
+        fn announce_and_return_part(&self, announcement: &str) -> &str {
+            println!("Attention please: {}", announcement);
+            self.part
+        }
+    }
+
+    // Expanded by the compiler
+    impl<'a> ImportantExcerpt<'a> {
+        fn announce_and_return_part<'b>(&'a self, announcement: &'b str) -> &'a str {
+            println!("Attention please: {}", announcement);
+            self.part
+        }
+    }
+    ```
+
+### Lifetime Annotation in Method Definition
+When implementing methods on a struct with lifetimes, it is used the same syntax as that of generics type parameters.
+```rust
+struct ImportantExcept<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcept<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some year ago...");
+    let first_sentence = novel.split(".").next().unwrap();
+    let i = ImportantExcept {
+        part: first_sentence,
+    };
+
+    println!("{}", i.part);
+    println!("Level: {}", i.level());
+}
+```
+
+The lifetime parameter declaration after `impl` and its use after the type name are required, but we’re not required to annotate the lifetime of the reference to `self` because of the first elision rule.
+
+### The Static Lifetime
+`'static` denotes that the affected reference can live for the entire duration of the program. All string literals have the `'static` lifetime, which we can annotate as follows:
+```rust
+let s: &'static str = "I have a static lifetime.";
+```
+
+## Generic Type Parameters, Trait Bounds, and Lifetimes Together
+```rust
+fn longest_with_an_announcement<'a, T> (x: &'a str, y: &'a str, ann: T) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {ann}");
+    if x.len() > y.len() { x } else { y }
+}
+```
