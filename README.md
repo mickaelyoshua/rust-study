@@ -3073,4 +3073,104 @@ mod tests {
 ```
 
 ## Checking Results with the `assert!` Macro
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*; // test is a inner module, so it is necessary to bring the code under test in the
+    // outer module into scope of the inner module
+
+    #[test]
+    fn larger_can_hold_smaller() {
+        let larger = Rectangle{
+            width: 8,
+            height: 7,
+        };
+
+        let smaller = Rectangle{
+            width: 5,
+            height: 1,
+        };
+
+        assert!(larger.can_hold(&smaller)); // pass
+    }
+
+    #[test]
+    fn smaller_cannot_hold_larger() {
+        let larger = Rectangle{
+            width: 8,
+            height: 7,
+        };
+
+        let smaller = Rectangle{
+            width: 5,
+            height: 1,
+        };
+
+        assert!(!smaller.can_hold(&larger));
+    }
+}
+```
+
+Because the `tests` module is an inner module, we need to bring the code under test in the outer module into the scope of the inner module. We use a glob here, so anything we define in the outer module is available to this `tests` module.
+
+## Testing Equality with `assert_eq!` and `assert_ne!` Macros
+```rust
+pub fn add_two(a: u64) -> u64 {
+    a + 2
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn it_adds_two() {
+        let result = add_two(6);
+        assert_eq!(result, 8);
+    }
+
+    #[test]
+    fn its_not_the_same_number() {
+        let a = 5;
+        let result = add_two(a);
+        assert_ne!(a, result); // pass it is not equal
+    }
+}
+```
+
+## Adding Custom Failure Messages
+You can also add a custom message to be printed with the failure message as optional arguments to the `assert!`, `assert_eq!`, `and assert_ne!` macros. Any arguments specified after the required arguments are passed along to the `format!` macro.
+```rust
+pub fn greeting(name: &str) -> String {
+    format!("Hello")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greeting_contains_name() {
+        let name = "Carol";
+        let result = greeting(name);
+        assert!(
+            result.contains("Carol"),
+            "Greeting did not contain name, value was `{result}`"
+        ); // failed test will show this text
+    }
+}
+```
+
+## Checking for Panics with `should_panic`
 
