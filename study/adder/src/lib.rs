@@ -1,18 +1,58 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+pub mod guess {
+    pub struct Guess {
+        value: i32,
+    }
+
+    impl Guess {
+        pub fn new(value: i32) -> Guess {
+            if !(1..100).contains(&value) {
+                panic!("Guess value must be between 1 and 100, got {value}.");
+            }
+            Guess { value }
+        }
+    }
 }
 
-pub fn add_two(a: u64) -> u64 {
-    a + 2
+pub mod ad {
+    pub fn add(left: u64, right: u64) -> u64 {
+        left + right
+    }
+
+    pub fn add_two(a: u64) -> u64 {
+        a + 2
+    }
+}
+
+pub mod rec {
+    #[derive(Debug)]
+    pub struct Rectangle {
+        pub width: u32,
+        pub height: u32,
+    }
+    impl Rectangle {
+        pub fn can_hold(&self, other: &Rectangle) -> bool {
+            self.width > other.width && self.height > other.height
+        }
+    }
 }
 
 pub fn greeting(name: &str) -> String {
     format!("Hello")
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::guess::Guess;
+    use crate::ad::{add, add_two};
+    use crate::rec::Rectangle;
+
+    #[test]
+    #[should_panic(expected = "less then or equal to 100")]
+    fn greather_then_100() {
+        Guess::new(200);
+    }
 
     #[test]
     fn greeting_contains_name() {
@@ -38,9 +78,14 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn it_works() -> Result<(), String> {
         let result = add(2, 2);
-        assert_eq!(result, 4);
+
+        if result == 4 {
+            Ok(())
+        } else {
+            Err(String::from("2 + 2 != 4"))
+        }
     }
 
     #[test]
@@ -79,13 +124,3 @@ mod tests {
     }
 }
 
-#[derive(Debug)]
-struct Rectangle {
-    width: u32,
-    height: u32,
-}
-impl Rectangle {
-    fn can_hold(&self, other: &Rectangle) -> bool {
-        self.width > other.width && self.height > other.height
-    }
-}

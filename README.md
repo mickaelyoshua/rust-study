@@ -3046,7 +3046,7 @@ The bodies of test functions typically perform these tree actions:
 * Run the code you want to test;
 * Assert that the results are what you expect.
 
-## The Anatomy of a Test Function
+### The Anatomy of a Test Function
 A test in Rust is a function that is annotated with the `test` attribute. Attributes are metadata about pieces of Rust code; one example is the `derive` attribute. To change a function into a test function, add `#[test]` on the line before `fn`. When you run your tests with `cargo test` command, Rust build a test runner binary that runs the annotated functions and reports if the function passed or fail.
 
 Tests falis when something in a test function panics.
@@ -3072,7 +3072,7 @@ mod tests {
 }
 ```
 
-## Checking Results with the `assert!` Macro
+### Checking Results with the `assert!` Macro
 ```rust
 #[derive(Debug)]
 struct Rectangle {
@@ -3124,7 +3124,7 @@ mod tests {
 
 Because the `tests` module is an inner module, we need to bring the code under test in the outer module into the scope of the inner module. We use a glob here, so anything we define in the outer module is available to this `tests` module.
 
-## Testing Equality with `assert_eq!` and `assert_ne!` Macros
+### Testing Equality with `assert_eq!` and `assert_ne!` Macros
 ```rust
 pub fn add_two(a: u64) -> u64 {
     a + 2
@@ -3149,7 +3149,7 @@ mod tests {
 }
 ```
 
-## Adding Custom Failure Messages
+### Adding Custom Failure Messages
 You can also add a custom message to be printed with the failure message as optional arguments to the `assert!`, `assert_eq!`, `and assert_ne!` macros. Any arguments specified after the required arguments are passed along to the `format!` macro.
 ```rust
 pub fn greeting(name: &str) -> String {
@@ -3172,5 +3172,62 @@ mod tests {
 }
 ```
 
-## Checking for Panics with `should_panic`
+### Checking for Panics with `should_panic`
+We can write a test that ensures that attempting to create a `Guess` instance with a value outside that range panics.
+
+We do this by adding the attribute `should_panic` to our test function. The test passes if the code inside the function panics; the test fails if the code inside the function doesn’t panic.
+```rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if !(1..100).contains(&value) {
+            panic!("Guess value must be between 1 and 100, got {value}.");
+        }
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    #[should_panic(expected = "less then or equal to 100")] // pass the test if panics | message if the test fails
+    fn greather_then_100() {
+        Guess::new(200);
+    }
+}
+```
+
+### Using `Result<T, E>` in Tests
+Our tests so far all panic when they fail. We can also write tests that use `Result<T, E>`!
+```rust
+pub fn add(left: u64, right: u64) -> u64 {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() -> Result<(), String> {
+        let result = add(2, 2);
+
+        if result == 4 {
+            Ok(())
+        } else {
+            Err(String::from("2 + 2 != 4"))
+        }
+    }
+}
+```
+
+Writing tests so they return a `Result<T, E>` enables you to use the question mark operator in the body of tests, which can be a convenient way to write tests that should fail if any operation within them returns an `Err` variant.
+
+## Controlling How Tests Are Run
 
