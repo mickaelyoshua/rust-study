@@ -49,6 +49,24 @@ mod tests {
     use crate::rec::Rectangle;
 
     #[test]
+    fn add_two_and_two() {
+        let result = add_two(2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn add_three_and_two() {
+        let result = add_two(3);
+        assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn one_hundred() {
+        let result = add_two(100);
+        assert_eq!(result, 102);
+    }
+
+    #[test]
     #[should_panic(expected = "less then or equal to 100")]
     fn greather_then_100() {
         Guess::new(200);

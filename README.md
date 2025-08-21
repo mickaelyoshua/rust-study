@@ -3231,3 +3231,107 @@ Writing tests so they return a `Result<T, E>` enables you to use the question ma
 
 ## Controlling How Tests Are Run
 
+The default behavior of the binary produced is by `cargo test` is to run all tests in parallel.
+
+### Running Tests In Parallel or Consecutively
+
+If you don’t want to run the tests in parallel or if you want more fine-grained control over the number of threads used, you can send the `--test-threads` flag and the number of threads you want to use to the test binary. Take a look at the following example:
+
+```bash
+cargo test -- --test-threads=1
+```
+
+### Showing Function Output
+
+By default, if a test passes, Rust’s test library captures anything printed to standard output. For example, if we call `println!` in a test and the test passes, we won’t see the `println!` output in the terminal; we’ll see only the line that indicates the test passed. If a test fails, we’ll see whatever was printed to standard output with the rest of the failure message.
+
+If we want to see printed values for passing tests as well, we can tell Rust to also show the output of successful tests with `--show-output`:
+
+```bash
+cargo test -- --show-output
+
+```
+
+### Running a Subset of Tests by Name
+
+```rust
+pub fn add(left: u64, right: u64) -> u64 {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::guess::Guess;
+    use crate::ad::{add, add_two};
+    use crate::rec::Rectangle;
+
+    #[test]
+    fn add_two_and_two() {
+        let result = add_two(2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn add_three_and_two() {
+        let result = add_two(3);
+        assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn one_hundred() {
+        let result = add_two(100);
+        assert_eq!(result, 102);
+    }
+}
+```
+
+To run a single test:
+
+```bash
+cargo test one_hundred
+```
+
+To filter tests by name:
+
+```bash
+cargo test add
+```
+
+This will run all test that have `add` in the name.
+
+### Ignoring Some Tests Unless Specifically Requested
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    #[ignore] // this will skip the test
+    fn expensive_test() {
+        // code that takes an hour to run
+    }
+}
+```
+
+If we want to run only the ignored tests:
+
+```bash
+cargo test -- --ignored
+```
+
+To run all including the ignored:
+
+```bash
+cargo test -- --include-ignored
+```
+
+## Test Organization
+
