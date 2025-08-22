@@ -831,7 +831,79 @@ fn main() {
 
 ---
 
-## 13. Fearless Concurrency
+## 13. Trait Objects for Polymorphism
+
+Trait objects allow for values of different types to be handled through a common interface, a core feature of object-oriented programming. This is achieved through **dynamic dispatch**.
+
+A trait object is created by using a pointer, such as `&` or `Box<T>`, with the `dyn` keyword (e.g., `&dyn MyTrait` or `Box<dyn MyTrait>`). This allows you to create collections of heterogeneous types that all implement the same trait.
+
+### Dynamic vs. Static Dispatch
+
+*   **Dynamic Dispatch (Trait Objects)**: The compiler doesn't know the concrete type at compile time. It uses a **vtable** (virtual method table) at runtime to look up which method to call. This provides flexibility at the cost of a small runtime performance hit and prevents some compiler optimizations like inlining.
+
+*   **Static Dispatch (Generics)**: When using generics with trait bounds (`<T: Trait>`), the compiler creates a specialized version of the code for each concrete type at compile time (monomorphization). This is a zero-cost abstraction with no runtime overhead, but you are limited to homogeneous collections.
+
+### Use Case: A GUI Drawing Library
+
+A common use case is a GUI library where a screen needs to draw various components. Each component can implement a `Draw` trait.
+
+```rust
+pub trait Draw {
+    fn draw(&self);
+}
+
+pub struct Button {
+    pub width: u32,
+    pub height: u32,
+    pub label: String,
+}
+
+impl Draw for Button {
+    fn draw(&self) {
+        // Code to draw a button
+    }
+}
+
+struct SelectBox {
+    width: u32,
+    height: u32,
+    options: Vec<String>,
+}
+
+impl Draw for SelectBox {
+    fn draw(&self) {
+        // Code to draw a select box
+    }
+}
+
+// We can now create a vector of different components
+// that all implement the `Draw` trait.
+let screen_components: Vec<Box<dyn Draw>> = vec![
+    Box::new(Button { width: 50, height: 10, label: String::from("OK") }),
+    Box::new(SelectBox { width: 75, height: 10, options: vec![
+        String::from("Yes"),
+        String::from("No"),
+        String::from("Maybe"),
+    ]}),
+];
+
+// And draw them all polymorphically.
+for component in screen_components.iter() {
+    component.draw();
+}
+```
+
+### Object Safety
+
+A trait can only be made into a trait object if it is **object-safe**. This generally means its methods must not:
+1.  Return the type `Self`.
+2.  Have generic type parameters.
+
+This is because the compiler cannot know the concrete type at runtime, so it cannot determine the size of `Self` or handle generic parameters.
+
+---
+
+## 14. Fearless Concurrency
 
 Rust's ownership and type system provide strong guarantees that allow you to write concurrent code free of many common bugs, like race conditions, at compile time.
 
