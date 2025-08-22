@@ -3335,3 +3335,73 @@ cargo test -- --include-ignored
 
 ## Test Organization
 
+### Unit Tests
+
+Test each unit of code in isolation from the rest of the code.
+
+#### The Tests Module and `#[cfg(test)]`
+
+The `#[cfg(test)]` annotation on the `tests` module tells Rust to compile and run the test code only when you run `cargo test`, not when you run `cargo build`. 
+
+You’ll see that because integration tests go in a different directory, they don’t need the `#[cfg(test)]` annotation.
+
+On the automatically generated `tests` module, the attribute `cfg` stands for configuration and tells Rust that the following item should only be included given a certain configuration option.
+
+#### Testing Private Functions
+
+```rust
+fn internal_adder(left: u64, right: u64) -> u64 { // not public
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn internal() {
+        let result = internal_adder(2,2); // rust allows to test private functions
+        assert_eq!(result, 4)
+    }
+}
+```
+
+### Integration Tests
+
+In Rust, integration tests are entirely external to your library. They use your library in the same way any other code would, which means they can only call functions that are part of your library’s public API. Their purpose is to test whether many parts of your library work together correctly.
+
+#### The `tests` Directory
+
+We create a tests directory at the top level of our project directory, next to src. Cargo knows to look for integration test files in this directory. We can then make as many test files as we want, and Cargo will compile each of the files as an individual crate.
+
+```
+adder
+├── Cargo.lock
+├── Cargo.toml
+├── src
+│   └── lib.rs
+└── tests
+    └── integration_test.rs
+```
+
+`tests/integration_test.rs`:
+
+```rust
+use adder::add_two;
+
+#[test]
+fn it_adds_two() {
+    let result = add_two(4);
+    assert_eq!(result, 6);
+}
+```
+
+Each file in the tests directory is a separate crate, so we need to bring our library into each test crate’s scope.
+
+We don’t need to annotate any code in *tests/integration_test.rs* with `#[cfg(test)]`. Cargo treats the tests directory specially and compiles files in this directory only when we run `cargo test`.
+
+if a unit test fails, there won’t be any output for integration and doc tests because those tests will only be run if all unit tests are passing.
+
+We can still run a particular integration test function by specifying the test function’s name as an argument to `cargo test`. To run all the tests in a particular integration test file, use the `--test` argument of `cargo test` followed by the name of the file.
+
+```bash
+cargo test --test integration_test
+```

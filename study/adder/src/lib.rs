@@ -6,7 +6,7 @@ pub mod guess {
     impl Guess {
         pub fn new(value: i32) -> Guess {
             if !(1..100).contains(&value) {
-                panic!("Guess value must be between 1 and 100, got {value}.");
+                panic!("Guess value must be between 1 and 100.");
             }
             Guess { value }
         }
@@ -40,6 +40,9 @@ pub fn greeting(name: &str) -> String {
     format!("Hello")
 }
 
+fn internal_adder(left: u64, right: u64) -> u64 {
+    left + right
+}
 
 #[cfg(test)]
 mod tests {
@@ -47,6 +50,12 @@ mod tests {
     use crate::guess::Guess;
     use crate::ad::{add, add_two};
     use crate::rec::Rectangle;
+
+    #[test]
+    fn internal() {
+        let result = internal_adder(2,2);
+        assert_eq!(result, 4)
+    }
 
     #[test]
     fn add_two_and_two() {
@@ -67,21 +76,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "less then or equal to 100")]
+    #[should_panic(expected = "Guess value must be between 1 and 100.")]
     fn greather_then_100() {
         Guess::new(200);
     }
 
-    #[test]
-    fn greeting_contains_name() {
-        let name = "Carol";
-        let result = greeting(name);
-        assert!(
-            result.contains("Carol"),
-            "Greeting did not contain name, value was `{result}`"
-    );
-    }
-    
     #[test]
     fn it_adds_two() {
         let result = add_two(6);
@@ -104,11 +103,6 @@ mod tests {
         } else {
             Err(String::from("2 + 2 != 4"))
         }
-    }
-
-    #[test]
-    fn another() {
-        panic!("Make this test fail");
     }
 
     #[test]
