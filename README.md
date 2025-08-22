@@ -363,7 +363,7 @@ fn main() {
     };
     // Note: user1.username was moved to user2, so user1 is partially moved.
 
-    println!("{:?}", user2);
+    println!("{user2:?}");
 }
 ```
 
@@ -498,7 +498,241 @@ fn get_state(coin: Coin) -> Option<UsState> {
 
 ---
 
-## 7. Managing Projects
+## 7. Error Handling
+
+Rust distinguishes between two types of errors:
+*   **Recoverable errors** are those that can be reasonably expected, like a file not being found. These are handled with the `Result<T, E>` enum.
+*   **Unrecoverable errors** are programming errors, like trying to access an index beyond an array's bounds. These cause a `panic!`.
+
+### `Result<T, E>` for Recoverable Errors
+The `Result` enum has two variants: `Ok(T)` for success and `Err(E)` for failure.
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt");
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening the file: {:?}", error),
+    };
+}
+```
+
+### The `?` Operator for Propagating Errors
+The `?` operator provides a concise way to propagate errors. If the value of a `Result` is `Ok`, the value inside is returned. If it's `Err`, the `Err` is returned from the whole function. It can only be used in functions that return a `Result` or `Option`.
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+// Manually propagating with match
+fn read_username_from_file_long() -> Result<String, io::Error> {
+    let mut username_file = match File::open("hello.txt") {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut username = String::new();
+    match username_file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+
+// Idiomatic propagation with `?`
+fn read_username_from_file_short() -> Result<String, io::Error> {
+    let mut username_file = File::open("hello.txt")?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username)
+}
+```
+**Best Practice**: Use `Result` for any error that could occur at runtime and should be handled. Use `panic!` for programming errors or states that should be impossible.
+
+---
+
+## 8. Generics, Traits, and Lifetimes
+
+These features allow for writing abstract, reusable, and safe code.
+
+### Generics (`<T>`)
+Generics allow you to write code that operates on abstract data types, avoiding duplication.
+
+```rust
+// A generic function `largest` that works on any type `T`
+// that implements the `PartialOrd` trait (for comparison).
+fn largest<T: PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+    largest
+}
+
+// A generic struct `Point` that can hold any type `T`.
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+    println!("The largest number is {}", largest(&number_list));
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+    println!("The largest char is {}", largest(&char_list));
+    
+    let integer_point = Point { x: 5, y: 10 };
+    let float_point = Point { x: 1.0, y: 4.0 };
+}
+```
+
+### Traits: Defining Shared Behavior
+A trait defines a set of methods that a type must implement, similar to an interface in other languages.
+
+```rust
+// Define a trait
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+// Implement the trait for a type
+pub struct NewsArticle {
+    pub headline: String,
+    pub author: String,
+}
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {}", self.headline, self.author)
+    }
+}
+
+// Use the trait as a parameter (a "trait bound")
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+
+fn main() {
+    let article = NewsArticle {
+        headline: String::from("Penguins win the Stanley Cup!"),
+        author: String::from("Iceburgh"),
+    };
+    notify(&article);
+}
+```
+
+### Lifetimes (`<'a>`)
+Lifetimes are a way of telling the Rust compiler how long references are valid, ensuring they don't outlive the data they point to (preventing dangling references).
+
+In many cases, the compiler can infer lifetimes (lifetime elision). But when a function's return type is a reference, its lifetime must be tied to the lifetime of one of the input references.
+
+```rust
+// This function's return value will have the same lifetime `'a`
+// as the shorter of the two input slices `x` and `y`.
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+fn main() {
+    let string1 = String::from("long string is long");
+    let result;
+    {
+        let string2 = String::from("xyz");
+        result = longest(string1.as_str(), string2.as_str());
+        println!("The longest string is {}", result); // Works here
+    }
+    // println!("The longest string is {}", result); // Compile error! `string2` is out of scope.
+}
+```
+
+---
+
+## 9. Closures and Iterators
+
+### Closures
+Closures are anonymous functions you can save in a variable or pass as arguments. They can capture values from the scope in which they’re defined.
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let intensity = 10;
+    let random_number = 7;
+
+    // A closure that captures `intensity` and `random_number` from its environment.
+    let expensive_closure = |num: u32| -> u32 {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    };
+
+    // Example of using the closure
+    let result = expensive_closure(intensity);
+    println!("Result: {}", result);
+}
+```
+
+### Iterators
+Iterators allow you to perform tasks on a sequence of items. They are lazy, meaning they have no effect until you call a "consuming" method.
+
+*   **Iterator adaptors**: Methods that transform an iterator into a different kind of iterator (e.g., `map`, `filter`).
+*   **Consuming adaptors**: Methods that use up the iterator (e.g., `sum`, `collect`).
+
+```rust
+fn main() {
+    let v1 = vec![1, 2, 3];
+
+    // `iter()` creates an iterator.
+    // `map` is an adaptor that creates a new iterator by applying a closure.
+    // `collect` is a consumer that gathers the results into a collection.
+    let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+
+    assert_eq!(v2, vec![2, 3, 4]);
+}
+```
+
+---
+
+## 10. Smart Pointers
+
+Smart pointers are data structures that act like pointers but also have additional metadata and capabilities, such as automatic memory management.
+
+*   **`Box<T>`**: For allocating values on the heap. Use when you have a large amount of data and want to transfer ownership, or for creating recursive types (e.g., a list where an enum variant contains another list).
+*   **`Rc<T>` (Reference Counting)**: For enabling multiple ownership of a value. It keeps track of the number of references to a value and cleans it up only when there are zero references left. **This is for single-threaded scenarios only.**
+*   **`RefCell<T>` (Interior Mutability)**: Allows you to mutate data even when there are immutable references to it. It enforces the borrowing rules at *runtime* instead of compile time. If the rules are violated, your program will `panic`.
+
+```rust
+use std::rc::Rc;
+use std::cell::RefCell;
+
+// Example of Rc<T> for multiple ownership
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+// Example of RefCell<T> for interior mutability
+let value = Rc::new(RefCell::new(5));
+let a = Rc::clone(&value);
+let b = Rc::clone(&value);
+
+*a.borrow_mut() += 10; // Mutate through an immutable reference
+
+println!("b after mutation: {:?}", b.borrow()); // Prints 15
+```
+
+---
+
+## 11. Managing Projects
 
 ### Packages, Crates, and Modules
 *   **Package**: One or more crates with a `Cargo.toml`.
@@ -539,7 +773,7 @@ pub fn add_to_waitlist() {}
 
 ---
 
-## 8. Common Collections
+## 12. Common Collections
 
 ### Vectors
 A `Vec<T>` is a resizable array that can only store values of the same type.
@@ -594,3 +828,141 @@ fn main() {
     }
 }
 ```
+
+---
+
+## 13. Fearless Concurrency
+
+Rust's ownership and type system provide strong guarantees that allow you to write concurrent code free of many common bugs, like race conditions, at compile time.
+
+*   **Concurrency**: When different parts of a program execute independently.
+*   **Parallelism**: When different parts of a program execute at the same time.
+
+### Using Threads to Run Code Simultaneously
+
+You can create a new thread with `thread::spawn`. The main thread must wait for the spawned thread to finish using a `JoinHandle` to prevent it from being terminated prematurely.
+
+The `move` keyword is often used with the closure passed to `thread::spawn` to force the closure to take ownership of the values it uses from the environment.
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let handle = thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("hi number {} from the main thread!", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+
+    // Block the main thread until the spawned thread finishes
+    handle.join().unwrap();
+}
+```
+
+### Message Passing with Channels
+
+Channels are a safe way to send data between threads, avoiding the risks of shared memory. Rust's implementation follows the principle: *"Do not communicate by sharing memory; instead, share memory by communicating."*
+
+A channel has a transmitter (`tx`) and a receiver (`rx`).
+
+```rust
+use std::sync::mpsc; // multiple producer, single consumer
+use std::thread;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+
+    let tx_clone = tx.clone(); // Clone the transmitter to use in another thread
+
+    // Spawn a thread that sends messages
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("hi"),
+            String::from("from"),
+            String::from("the"),
+            String::from("thread"),
+        ];
+        for val in vals {
+            tx.send(val).unwrap();
+        }
+    });
+    
+    // Spawn another thread sending messages
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("more"),
+            String::from("messages"),
+            String::from("for"),
+            String::from("you"),
+        ];
+        for val in vals {
+            tx_clone.send(val).unwrap();
+        }
+    });
+
+    // The receiver can be used as an iterator in the main thread
+    for received in rx {
+        println!("Got: {}", received);
+    }
+}
+```
+
+### Shared-State Concurrency with `Mutex<T>`
+
+While message passing is a great approach, you can also share memory between threads. A `Mutex<T>` (mutual exclusion) is a smart pointer that ensures only one thread can access the data at any given time.
+
+To access the data, a thread must first acquire the mutex's **lock**. The lock is automatically released when the `MutexGuard` (returned by `lock()`) goes out of scope.
+
+### Sharing a `Mutex<T>` Between Multiple Threads
+
+To share ownership of a `Mutex<T>` across multiple threads, we use the smart pointer `Arc<T>` (Atomically Reference Counted). It is the thread-safe equivalent of `Rc<T>`.
+
+The pattern `Arc<Mutex<T>>` is very common in Rust for sharing mutable state between threads.
+
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn main() {
+    // Create a counter inside an atomically reference-counted Mutex.
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        // Clone the Arc to increase the reference count for each thread
+        let counter = Arc::clone(&counter);
+        
+        let handle = thread::spawn(move || {
+            // Acquire the lock. This blocks until the lock is available.
+            let mut num = counter.lock().unwrap();
+            
+            *num += 1;
+            // The lock is automatically released when `num` goes out of scope here.
+        });
+        handles.push(handle);
+    }
+
+    // Wait for all the threads to finish.
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    // Print the final result.
+    println!("Result: {}", *counter.lock().unwrap());
+}
+```
+
+### The `Send` and `Sync` Traits
+
+These two marker traits are crucial to Rust's concurrency safety:
+*   **`Send`**: A type `T` is `Send` if it is safe to transfer its ownership to another thread. Most types are `Send`. `Arc<T>` is `Send` if `T` is `Send` and `Sync`.
+*   **`Sync`**: A type `T` is `Sync` if it is safe to be referenced from multiple threads simultaneously (`&T` is `Send`). `Mutex<T>` is `Sync`.
+
+The compiler enforces that only types that are `Send` and `Sync` can be shared between threads, preventing data races at compile time. You rarely need to implement these traits manually.
