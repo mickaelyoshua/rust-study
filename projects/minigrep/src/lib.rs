@@ -1,13 +1,46 @@
-pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
+use std::env;
 
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
+pub struct Config {
+    pub query: String,
+    pub file_path: String,
+    pub ignore_case: bool,
+}
+
+impl Config {
+    pub fn new(query: String, file_path: String) -> Config {
+        Config {
+            query,
+            file_path,
+            ignore_case: env::var("IGNORE_CASE").is_ok(),
         }
     }
 
-    results
+    // 'static lifetime is a special lifetime that defines that the reference will live for the
+    // entire duration of the program
+    pub fn build(
+        mut args: impl Iterator<Item = String>
+    ) -> Result<Config, &'static str> {
+        args.next(); // skip the first one
+        
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string."),
+        };
+
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path."),
+        };
+
+        Ok(Config::new(query, file_path))
+    }
+}
+
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(
@@ -15,15 +48,11 @@ pub fn search_case_insensitive<'a>(
     contents: &'a str
 ) -> Vec<&'a str> {
     let query = query.to_lowercase(); // this will allocate a new String
-    let mut result = Vec::new();
 
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) { // making necessary to reference here
-            result.push(line);
-        }
-    }
-
-    result
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 #[cfg(test)]
