@@ -1038,3 +1038,13 @@ These two marker traits are crucial to Rust's concurrency safety:
 *   **`Sync`**: A type `T` is `Sync` if it is safe to be referenced from multiple threads simultaneously (`&T` is `Send`). `Mutex<T>` is `Sync`.
 
 The compiler enforces that only types that are `Send` and `Sync` can be shared between threads, preventing data races at compile time. You rarely need to implement these traits manually.
+
+---
+
+## 15. Smart Pointers
+
+Here is a recap of the reasons to choose Box<T>, Rc<T>, or RefCell<T>:
+
+*   `Rc<T>` enables multiple owners of the same data; `Box<T>` and `RefCell<T>` have single owners.
+*   `Box<T>` allows immutable or mutable borrows checked at compile time; `Rc<T>` allows only immutable borrows checked at compile time; `RefCell<T>` allows immutable or mutable borrows checked at runtime.
+*   Because `RefCell<T>` allows mutable borrows checked at runtime, you can mutate the value inside the `RefCell<T>` even when the `RefCell<T>` is immutable.
