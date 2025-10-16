@@ -1,23 +1,33 @@
 use trpl::Html;
 use std::env;
 
-async fn page_title(url: &str) -> Option<String> {
-    let response = trpl::get(url).await;
-    let response_text = response.text().await;
-    // let response_text = trpl::get(url).await.text().await;
-    Html::parse(&response_text)
+async fn page_title(url: &str) -> (&str, Option<String>) {
+    let response_text = trpl::get(url).await.text().await;
+    let title = Html::parse(&response_text)
         .select_first("title")
-        .map(|title| title.inner_html())
+        .map(|title| title.inner_html());
+    
+    (url, title)
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let url = &args[1];
+    let url1 = &args[1];
+    let url2 = &args[2];
 
     trpl::run(async {
-        match page_title(url).await {
-            Some(title) => println!("The title for {url} was {title}"),
-            None => println!("{url} had no title"),
+        let title_fut_1 = page_title(url1);
+        let title_fut_2 = page_title(url2);
+
+        let (url, maybe_title) = match trpl::race(title_fut_1, title_fut_2).await {
+            trpl::Either::Left(left) => left,
+            trpl::Either::Right(right) => right,
+        };
+
+        println!("{url} returned first");
+        match maybe_title {
+            Some(title) => println!("Its page title was: {title}"),
+            None => println!("It had no title"),
         }
     });
 }
@@ -49,11 +59,11 @@ fn main() {
 //     println!("\nResult: {}", *counter.lock().unwrap());
 // }
 
+// // CHANNELS
 // use std::thread;
 // use std::time::Duration;
 // use std::sync::mpsc;
 
-// // CHANNELS
 // fn main() {
 //     let (tx, rx) = mpsc::channel();
 //
